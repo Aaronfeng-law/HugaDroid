@@ -409,6 +409,7 @@ string pat_auth_label
 string pending_changes
 string personal_access_token
 string pick_from_gallery
+string pin
 string post_slug
 string posts
 string preview_mode
@@ -420,6 +421,7 @@ string push
 string range_end
 string range_start
 string recent_commits
+string recent_posts
 string remove
 string rename
 string rename_to
@@ -477,6 +479,7 @@ string tooltip_label
 string total_words
 string unique_categories
 string unique_tags
+string unpin
 string unsaved_changes
 string untitled
 string url
@@ -486,6 +489,8 @@ string working_papers
 string writing_days
 string your_email
 string your_name
+string zoom_in
+string zoom_out
 style DialogWindowTheme
 style EdgeToEdgeFloatingDialogTheme
 style EdgeToEdgeFloatingDialogWindowTheme

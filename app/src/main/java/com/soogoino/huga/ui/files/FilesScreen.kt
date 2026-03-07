@@ -34,8 +34,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.soogoino.huga.R
 import com.soogoino.huga.data.prefs.AppPreferences
-import com.soogoino.huga.ui.components.HugaNavigationBar
-import com.soogoino.huga.ui.components.HugaTab
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -283,8 +281,6 @@ class FilesViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilesScreen(
-    onNavigateToHome: () -> Unit,
-    onNavigateToPosts: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToSetup: () -> Unit,
     onOpenFile: (filePath: String) -> Unit,
@@ -481,14 +477,6 @@ fun FilesScreen(
                         }
                     }
                 },
-            )
-        },
-        bottomBar = {
-            HugaNavigationBar(
-                selected = HugaTab.FILES,
-                onHome = onNavigateToHome,
-                onPosts = onNavigateToPosts,
-                onFiles = {},
             )
         },
         floatingActionButton = {

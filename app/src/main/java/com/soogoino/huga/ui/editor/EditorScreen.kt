@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -61,6 +63,9 @@ fun EditorScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+
+    // Font size for source editor (zoom in/out), 14sp default, 10–28sp range
+    var editorFontSizeSp by rememberSaveable { mutableFloatStateOf(14f) }
 
     // TextFieldValue to track cursor in Content tab
     var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
@@ -169,6 +174,22 @@ fun EditorScreen(
                         )
                     }
 
+                    // Zoom in / zoom out (Content + Preview tabs)
+                    if (uiState.editorTab == EditorTab.CONTENT || uiState.editorTab == EditorTab.PREVIEW) {
+                        IconButton(
+                            onClick = { editorFontSizeSp = (editorFontSizeSp - 2f).coerceAtLeast(10f) },
+                            enabled = editorFontSizeSp > 10f,
+                        ) {
+                            Icon(Icons.Outlined.ZoomOut, contentDescription = stringResource(R.string.zoom_out))
+                        }
+                        IconButton(
+                            onClick = { editorFontSizeSp = (editorFontSizeSp + 2f).coerceAtMost(28f) },
+                            enabled = editorFontSizeSp < 28f,
+                        ) {
+                            Icon(Icons.Outlined.ZoomIn, contentDescription = stringResource(R.string.zoom_in))
+                        }
+                    }
+
                     // Insert image (only shown when in Content tab)
                     if (uiState.editorTab == EditorTab.CONTENT) {
                         IconButton(onClick = {
@@ -234,6 +255,7 @@ fun EditorScreen(
                                 viewModel.onBodyChanged(newVal.text)
                                 viewModel.onCursorPositionChanged(newVal.selection.start)
                             },
+                            fontSize = editorFontSizeSp,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -260,6 +282,7 @@ fun EditorScreen(
                         }
                         PreviewPane(
                             markdown = previewBody,
+                            fontSize = editorFontSizeSp,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -353,6 +376,7 @@ private fun resolvePreviewImagePaths(
 private fun SourceEditor(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
+    fontSize: Float = 14f,
     modifier: Modifier = Modifier,
 ) {
     val customSelectionColors = TextSelectionColors(
@@ -368,14 +392,21 @@ private fun SourceEditor(
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
-            textStyle = EditorTextStyle.copy(color = MaterialTheme.colorScheme.onSurface),
+            textStyle = EditorTextStyle.copy(
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = fontSize.sp,
+                lineHeight = (fontSize * 1.6f).sp,
+            ),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             visualTransformation = remember { MarkdownVisualTransformation() },
             decorationBox = { innerTextField ->
                 if (value.text.isEmpty()) {
                     Text(
                         stringResource(R.string.start_writing_placeholder),
-                        style = EditorTextStyle,
+                        style = EditorTextStyle.copy(
+                            fontSize = fontSize.sp,
+                            lineHeight = (fontSize * 1.6f).sp,
+                        ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     )
                 }
@@ -471,7 +502,7 @@ private fun ImageNameDialog(
 }
 
 @Composable
-private fun PreviewPane(markdown: String, modifier: Modifier = Modifier) {
+private fun PreviewPane(markdown: String, fontSize: Float = 14f, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     // markdown is already body-only (no front matter), so render directly
     val segments = remember(markdown) { parseMarkdownSegments(markdown) }
@@ -492,6 +523,8 @@ private fun PreviewPane(markdown: String, modifier: Modifier = Modifier) {
                             state = richState,
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = fontSize.sp,
+                                lineHeight = (fontSize * 1.6f).sp,
                             ),
                         )
                     }

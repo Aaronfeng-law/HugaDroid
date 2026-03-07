@@ -54,6 +54,18 @@ class AppPreferences @Inject constructor(
         val AUTO_SYNC_INTERVAL = intPreferencesKey("auto_sync_interval_minutes")
         val IS_REPO_SETUP = booleanPreferencesKey("is_repo_setup")
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val PINNED_POSTS = stringSetPreferencesKey("pinned_posts")
+    }
+
+    val pinnedPosts: Flow<Set<String>> = context.dataStore.data.map { prefs ->
+        prefs[Keys.PINNED_POSTS] ?: emptySet()
+    }
+
+    suspend fun togglePinPost(filePath: String) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[Keys.PINNED_POSTS] ?: emptySet()
+            prefs[Keys.PINNED_POSTS] = if (filePath in current) current - filePath else current + filePath
+        }
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { prefs ->

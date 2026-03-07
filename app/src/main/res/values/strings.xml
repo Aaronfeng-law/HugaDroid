@@ -28,6 +28,9 @@
     <string name="unique_tags">Unique Tags</string>
     <string name="unique_categories">Categories</string>
     <string name="total_words">Total Words</string>
+    <string name="recent_posts">Recent Posts</string>
+    <string name="pin">Pin</string>
+    <string name="unpin">Unpin</string>
     <string name="working_papers">Working Papers</string>
     <string name="no_drafts">No drafts — all caught up!</string>
     <!-- %d = estimated minutes -->
@@ -51,6 +54,8 @@
     <string name="saving">Saving</string>
     <string name="unsaved_changes">Unsaved changes</string>
     <string name="insert_image">Insert image</string>
+    <string name="zoom_in">Zoom in</string>
+    <string name="zoom_out">Zoom out</string>
     <string name="editor_tab_content">Content</string>
     <string name="editor_tab_front_matter">Front Matter</string>
     <string name="editor_tab_preview">Preview</string>

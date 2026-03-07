@@ -3,6 +3,7 @@ package com.soogoino.huga.ui.posts
 import com.soogoino.huga.ui.util.countWords
 import com.soogoino.huga.ui.util.estimatedMinRead
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -28,16 +29,12 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
 import androidx.compose.ui.res.stringResource
-import com.soogoino.huga.ui.components.HugaNavigationBar
-import com.soogoino.huga.ui.components.HugaTab
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PostsScreen(
     onOpenPost: (filePath: String) -> Unit,
-    onNavigateToHome: () -> Unit,
     onNavigateToSync: () -> Unit,
-    onNavigateToFiles: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToSetup: () -> Unit,
     viewModel: PostsViewModel = hiltViewModel(),
@@ -63,7 +60,7 @@ fun PostsScreen(
 
     Scaffold(
         topBar = {
-            LargeTopAppBar(
+            TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
                     // Sort menu
@@ -117,15 +114,6 @@ fun PostsScreen(
                         Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings))
                     }
                 },
-                scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
-            )
-        },
-        bottomBar = {
-            HugaNavigationBar(
-                selected = HugaTab.POSTS,
-                onHome = onNavigateToHome,
-                onPosts = {},
-                onFiles = onNavigateToFiles,
             )
         },
         floatingActionButton = {
@@ -217,8 +205,10 @@ fun PostsScreen(
                         items(posts, key = { it.filePath }) { post ->
                             PostCard(
                                 post = post,
+                                isPinned = post.filePath in uiState.pinnedFilePaths,
                                 onClick = { onOpenPost(post.filePath) },
                                 onDelete = { showDeleteDialog = post },
+                                onTogglePin = { viewModel.togglePin(post.filePath) },
                             )
                         }
                         item { Spacer(Modifier.height(80.dp)) } // FAB clearance
@@ -263,8 +253,10 @@ fun PostsScreen(
 @Composable
 private fun PostCard(
     post: HugoPost,
+    isPinned: Boolean,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    onTogglePin: () -> Unit,
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -277,7 +269,8 @@ private fun PostCard(
             else
                 MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isPinned) 3.dp else 1.dp),
+        border = if (isPinned) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)) else null,
     ) {
         Row(
             modifier = Modifier
@@ -287,6 +280,14 @@ private fun PostCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isPinned) {
+                        Icon(
+                            Icons.Filled.PushPin,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp).padding(end = 2.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                     if (post.frontMatter.draft) {
                         SuggestionChip(
                             onClick = {},
@@ -361,6 +362,16 @@ private fun PostCard(
                         text = { Text(stringResource(R.string.edit)) },
                         onClick = { showMenu = false; onClick() },
                         leadingIcon = { Icon(Icons.Outlined.Edit, null) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(if (isPinned) stringResource(R.string.unpin) else stringResource(R.string.pin)) },
+                        onClick = { showMenu = false; onTogglePin() },
+                        leadingIcon = {
+                            Icon(
+                                if (isPinned) Icons.Outlined.PushPin else Icons.Filled.PushPin,
+                                null,
+                            )
+                        },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },

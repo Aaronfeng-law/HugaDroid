@@ -1,12 +1,19 @@
 package com.soogoino.huga.ui.navigation
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import com.soogoino.huga.ui.components.HugaNavigationBar
+import com.soogoino.huga.ui.components.HugaTab
 import com.soogoino.huga.ui.editor.EditorScreen
 import com.soogoino.huga.ui.files.FilesScreen
 import com.soogoino.huga.ui.home.HomeScreen
@@ -52,15 +59,37 @@ fun HugaNavGraph(
     navController: NavHostController,
     startDestination: String = Screen.Home.route,
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = startDestination,
-        // 非 Tab 畫面的全域預設（push/pop 風格）
-        enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
-        exitTransition = { slideOutHorizontally(targetOffsetX = { -it / 3 }) + fadeOut() },
-        popEnterTransition = { slideInHorizontally(initialOffsetX = { -it / 3 }) + fadeIn() },
-        popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
-    ) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val selectedTab = when (currentRoute) {
+        Screen.Home.route  -> HugaTab.HOME
+        Screen.Posts.route -> HugaTab.POSTS
+        Screen.Files.route -> HugaTab.FILES
+        else               -> null
+    }
+
+    Scaffold(
+        bottomBar = {
+            if (selectedTab != null) {
+                HugaNavigationBar(
+                    selected = selectedTab,
+                    onHome  = { navController.navigateTab(Screen.Home.route) },
+                    onPosts = { navController.navigateTab(Screen.Posts.route) },
+                    onFiles = { navController.navigateTab(Screen.Files.route) },
+                )
+            }
+        },
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            modifier = Modifier.padding(innerPadding),
+            // 非 Tab 畫面的全域預設（push/pop 風格）
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it / 3 }) + fadeOut() },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it / 3 }) + fadeIn() },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
+        ) {
         composable(
             route = Screen.Home.route,
             enterTransition = {
@@ -88,8 +117,6 @@ fun HugaNavGraph(
             popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
         ) {
             HomeScreen(
-                onNavigateToPosts = { navController.navigateTab(Screen.Posts.route) },
-                onNavigateToFiles = { navController.navigateTab(Screen.Files.route) },
                 onNavigateToSync = { navController.navigate(Screen.Sync.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToSetup = { navController.navigate(Screen.Setup.route) },
@@ -124,9 +151,7 @@ fun HugaNavGraph(
                 onOpenPost = { filePath ->
                     navController.navigate(Screen.Editor.createRoute(filePath))
                 },
-                onNavigateToHome = { navController.navigateTab(Screen.Home.route) },
                 onNavigateToSync = { navController.navigate(Screen.Sync.route) },
-                onNavigateToFiles = { navController.navigateTab(Screen.Files.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToSetup = { navController.navigate(Screen.Setup.route) },
             )
@@ -156,8 +181,6 @@ fun HugaNavGraph(
             popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
         ) {
             FilesScreen(
-                onNavigateToHome = { navController.navigateTab(Screen.Home.route) },
-                onNavigateToPosts = { navController.navigateTab(Screen.Posts.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToSetup = { navController.navigate(Screen.Setup.route) },
                 onOpenFile = { filePath ->
@@ -199,5 +222,6 @@ fun HugaNavGraph(
         composable(Screen.Settings.route) {
             SettingsScreen(onNavigateUp = { navController.popBackStack() })
         }
+    }
     }
 }

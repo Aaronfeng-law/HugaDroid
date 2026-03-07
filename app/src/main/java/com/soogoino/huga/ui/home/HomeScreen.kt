@@ -22,8 +22,6 @@ import com.soogoino.huga.data.prefs.AppPreferences
 import com.soogoino.huga.domain.ObservePostsUseCase
 import com.soogoino.huga.domain.SyncRepoUseCase
 import com.soogoino.huga.git.GitRepository
-import com.soogoino.huga.ui.components.HugaNavigationBar
-import com.soogoino.huga.ui.components.HugaTab
 import com.soogoino.huga.ui.util.countWords
 import com.soogoino.huga.ui.util.estimatedMinRead
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,6 +44,7 @@ data class HomeUiState(
     val uniqueCategories: Int = 0,
     val totalWords: Int = 0,
     val draftPosts: List<HugoPost> = emptyList(),
+    val recentPosts: List<HugoPost> = emptyList(),
     val aheadCount: Int = 0,
     val isRepoSetup: Boolean = false,
     val isSyncing: Boolean = false,
@@ -85,6 +84,11 @@ class HomeViewModel @Inject constructor(
                 val tags = posts.flatMap { it.frontMatter.tags }.toSet().size
                 val cats = posts.flatMap { it.frontMatter.categories }.toSet().size
                 val totalWords = posts.sumOf { p -> countWords(p.bodyMarkdown) }
+                val recentPosts = published
+                    .sortedByDescending { p ->
+                        runCatching { LocalDate.parse(p.frontMatter.date.take(10)) }.getOrNull()
+                    }
+                    .take(3)
                 _uiState.update {
                     it.copy(
                         publishedCount = published.size,
@@ -94,6 +98,7 @@ class HomeViewModel @Inject constructor(
                         uniqueCategories = cats,
                         totalWords = totalWords,
                         draftPosts = drafts,
+                        recentPosts = recentPosts,
                     )
                 }
             }
@@ -120,8 +125,6 @@ class HomeViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToPosts: () -> Unit,
-    onNavigateToFiles: () -> Unit,
     onNavigateToSync: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToSetup: () -> Unit,
@@ -132,7 +135,7 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            LargeTopAppBar(
+            TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
                     BadgedBox(
@@ -152,15 +155,6 @@ fun HomeScreen(
                         Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings))
                     }
                 },
-                scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
-            )
-        },
-        bottomBar = {
-            HugaNavigationBar(
-                selected = HugaTab.HOME,
-                onHome = {},
-                onPosts = onNavigateToPosts,
-                onFiles = onNavigateToFiles,
             )
         },
     ) { paddingValues ->
@@ -185,6 +179,20 @@ fun HomeScreen(
                         modifier = Modifier.padding(bottom = 4.dp),
                     )
                     StatGrid(uiState)
+                }
+
+                // Recent Posts section
+                if (uiState.recentPosts.isNotEmpty()) {
+                    item {
+                        Text(
+                            stringResource(R.string.recent_posts),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                        )
+                    }
+                    items(uiState.recentPosts, key = { "recent_${it.filePath}" }) { post ->
+                        RecentPostCard(post = post, onClick = { onOpenPost(post.filePath) })
+                    }
                 }
 
                 // Working Papers header
@@ -221,29 +229,80 @@ private fun StatGrid(uiState: HomeUiState) {
         uiState.totalWords >= 1_000 -> "%.1fK".format(uiState.totalWords / 1_000f)
         else -> uiState.totalWords.toString()
     }
-    val stats = listOf(
-        R.string.published to uiState.publishedCount.toString(),
-        R.string.drafts_count to uiState.draftCount.toString(),
-        R.string.writing_days to uiState.writingDays.toString(),
-        R.string.unique_tags to uiState.uniqueTags.toString(),
-        R.string.unique_categories to uiState.uniqueCategories.toString(),
-        R.string.total_words to totalWordsLabel,
-    )
-
-    val rows = stats.chunked(2)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        rows.forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { (labelRes, value) ->
-                    StatCard(
-                        label = stringResource(labelRes),
-                        value = value,
-                        modifier = Modifier.weight(1f),
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PostsStatCard(
+                publishedCount = uiState.publishedCount,
+                draftCount = uiState.draftCount,
+                modifier = Modifier.weight(1f),
+            )
+            StatCard(
+                label = stringResource(R.string.total_words),
+                value = totalWordsLabel,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatCard(
+                label = stringResource(R.string.unique_tags),
+                value = uiState.uniqueTags.toString(),
+                modifier = Modifier.weight(1f),
+            )
+            StatCard(
+                label = stringResource(R.string.unique_categories),
+                value = uiState.uniqueCategories.toString(),
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PostsStatCard(
+    publishedCount: Int,
+    draftCount: Int,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.posts),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = publishedCount.toString(),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = stringResource(R.string.published),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                // Fill remaining space if row is not full
-                if (row.size < 2) {
-                    Spacer(Modifier.weight(1f))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = draftCount.toString(),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                    Text(
+                        text = stringResource(R.string.drafts_count),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -273,6 +332,78 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+// ─── Recent Post Card ────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RecentPostCard(post: HugoPost, onClick: () -> Unit) {
+    val minRead = estimatedMinRead(post.bodyMarkdown)
+    val dateStr = post.frontMatter.date.take(10).takeIf { it.length == 10 }?.let {
+        runCatching {
+            val d = LocalDate.parse(it)
+            d.format(DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault()))
+        }.getOrDefault(it)
+    }
+
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = post.frontMatter.title.ifBlank { post.slug },
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (post.frontMatter.description.isNotBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = post.frontMatter.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (dateStr != null) {
+                        Text(
+                            text = dateStr,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.min_read, minRead),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+            SuggestionChip(
+                onClick = {},
+                label = { Text(stringResource(R.string.published), style = MaterialTheme.typography.labelSmall) },
+                colors = SuggestionChipDefaults.suggestionChipColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+                border = null,
             )
         }
     }

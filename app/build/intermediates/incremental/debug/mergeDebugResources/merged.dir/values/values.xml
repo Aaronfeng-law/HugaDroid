@@ -312,6 +312,7 @@
     <string name="pending_changes">%d pending change(s)</string>
     <string name="personal_access_token">Personal Access Token</string>
     <string name="pick_from_gallery">Pick from Gallery</string>
+    <string name="pin">Pin</string>
     <string name="post_slug">Post slug (folder name)</string>
     <string name="posts">Posts</string>
     <string name="preview_mode">Preview</string>
@@ -323,6 +324,7 @@
     <string name="range_end">"Range end"</string>
     <string name="range_start">"Range start"</string>
     <string name="recent_commits">Recent Commits</string>
+    <string name="recent_posts">Recent Posts</string>
     <string name="remove">Remove</string>
     <string name="rename">Rename</string>
     <string name="rename_to">New name</string>
@@ -380,6 +382,7 @@
     <string name="total_words">Total Words</string>
     <string name="unique_categories">Categories</string>
     <string name="unique_tags">Unique Tags</string>
+    <string name="unpin">Unpin</string>
     <string name="unsaved_changes">Unsaved changes</string>
     <string name="untitled">Untitled</string>
     <string name="url">URL</string>
@@ -389,6 +392,8 @@
     <string name="writing_days">Writing Days</string>
     <string name="your_email">Your Email</string>
     <string name="your_name">Your Name</string>
+    <string name="zoom_in">Zoom in</string>
+    <string name="zoom_out">Zoom out</string>
     <style name="DialogWindowTheme">
         <item name="android:windowClipToOutline">false</item>
     </style>

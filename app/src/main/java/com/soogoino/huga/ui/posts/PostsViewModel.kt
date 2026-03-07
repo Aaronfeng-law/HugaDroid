@@ -29,6 +29,7 @@ data class PostsUiState(
     val searchQuery: String = "",
     val sortOrder: SortOrder = SortOrder.DATE_DESC,
     val availableSections: List<String> = listOf("posts"),
+    val pinnedFilePaths: Set<String> = emptySet(),
 )
 
 sealed class PostsEvent {
@@ -54,6 +55,12 @@ class PostsViewModel @Inject constructor(
     val events: SharedFlow<PostsEvent> = _events.asSharedFlow()
 
     init {
+        // Observe pinned posts
+        viewModelScope.launch {
+            prefs.pinnedPosts.collect { pinned ->
+                _uiState.update { it.copy(pinnedFilePaths = pinned) }
+            }
+        }
         // Observe setup status
         viewModelScope.launch {
             prefs.settings.collect { s ->
@@ -140,6 +147,10 @@ class PostsViewModel @Inject constructor(
         }
     }
 
+    fun togglePin(filePath: String) {
+        viewModelScope.launch { prefs.togglePinPost(filePath) }
+    }
+
     fun toggleDraftFilter() {
         _uiState.update { it.copy(filterOnlyDraft = !it.filterOnlyDraft) }
     }
@@ -164,10 +175,13 @@ class PostsViewModel @Inject constructor(
                     post.frontMatter.tags.any { it.lowercase().contains(q) }
                 }
             }
-            when (state.sortOrder) {
+            val sorted = when (state.sortOrder) {
                 SortOrder.DATE_DESC -> list.sortedByDescending { it.frontMatter.date }
                 SortOrder.DATE_ASC  -> list.sortedBy { it.frontMatter.date }
                 SortOrder.TITLE_ASC -> list.sortedBy { it.frontMatter.title.lowercase() }
             }
+            // Pinned posts always float to top, preserving sub-order among pinned
+            val (pinned, unpinned) = sorted.partition { it.filePath in state.pinnedFilePaths }
+            pinned + unpinned
         }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 }
