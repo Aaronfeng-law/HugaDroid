@@ -1,0 +1,1 @@
+-keep,allowobfuscation,allowshrinking class com.soogoino.huga.ui.sync.SetupViewModel

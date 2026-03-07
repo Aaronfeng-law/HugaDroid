@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- For camera capture - temp photo files -->
+    <cache-path name="camera_photos" path="camera/" />
+    <!-- For SSH keys stored in files dir -->
+    <files-path name="ssh_keys" path=".ssh/" />
+</paths>

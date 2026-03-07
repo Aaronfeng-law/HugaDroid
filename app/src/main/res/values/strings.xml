@@ -1,0 +1,171 @@
+<resources>
+    <string name="app_name">Huga</string>
+
+    <!-- ── Common ─────────────────────────────────────────────────── -->
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="back">Back</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="create">Create</string>
+    <string name="insert">Insert</string>
+    <string name="remove">Remove</string>
+    <string name="more_options">More</string>
+
+    <!-- ── Navigation / Bottom bar ───────────────────────────────── -->
+    <string name="posts">Posts</string>
+    <string name="sync">Sync</string>
+    <string name="settings">Settings</string>
+
+    <!-- ── Editor ────────────────────────────────────────────────── -->
+    <string name="untitled">Untitled</string>
+    <string name="saved">Saved</string>
+    <string name="saving">Saving</string>
+    <string name="unsaved_changes">Unsaved changes</string>
+    <string name="insert_image">Insert image</string>
+    <string name="editor_tab_content">Content</string>
+    <string name="editor_tab_front_matter">Front Matter</string>
+    <string name="editor_tab_preview">Preview</string>
+    <string name="start_writing_placeholder">Start writing your post…</string>
+    <!-- Image insert dialog -->
+    <string name="dialog_insert_image_title">Insert Image</string>
+    <string name="image_file_name">File name</string>
+    <string name="image_alt_text">Alt text (for accessibility)</string>
+    <string name="image_alt_text_placeholder">Describe the image</string>
+    <!-- %s = image path -->
+    <string name="image_not_found">⚠ Image not found\n%s</string>
+    <!-- Media sheet -->
+    <string name="insert_media">Insert Media</string>
+    <string name="take_photo">Take Photo</string>
+    <string name="pick_from_gallery">Pick from Gallery</string>
+
+    <!-- ── Front Matter Tab ──────────────────────────────────────── -->
+    <string name="title">Title</string>
+    <string name="draft">Draft</string>
+    <string name="draft_subtitle">Draft posts are not published</string>
+    <string name="description">Description</string>
+    <string name="tags">Tags</string>
+    <string name="add_tag">Add tag</string>
+    <string name="categories">Categories</string>
+    <string name="add_category">Add category</string>
+    <string name="advanced">Advanced</string>
+    <string name="collapse">Collapse</string>
+    <string name="expand">Expand</string>
+    <string name="date">Date</string>
+    <string name="date_iso_label">Date (ISO-8601)</string>
+    <string name="date_iso_placeholder">e.g. 2026-03-06T12:00:00+08:00</string>
+    <string name="now">Now</string>
+    <string name="slug_optional">Slug (optional override)</string>
+    <string name="cover_image_path">Cover Image path</string>
+    <string name="cover_image_placeholder">e.g. cover.jpg or /images/cover.jpg</string>
+    <string name="cover_image_supporting">Relative to bundle dir (PAGE_BUNDLE) or absolute from site root</string>
+
+    <!-- ── Posts Screen ──────────────────────────────────────────── -->
+    <string name="new_post">New Post</string>
+    <string name="sort">Sort</string>
+    <string name="search">Search</string>
+    <string name="newest_first">Newest First</string>
+    <string name="oldest_first">Oldest First</string>
+    <string name="title_a_z">Title A–Z</string>
+    <string name="drafts_only">Drafts only</string>
+    <string name="draft_chip">Draft</string>
+    <string name="search_posts_placeholder">Search posts…</string>
+    <string name="delete_post_title">Delete Post</string>
+    <!-- %s = post title -->
+    <string name="delete_post_confirmation">Delete \"%s\"? This cannot be undone.</string>
+    <string name="new_post_slug_hint">Enter a URL-safe slug (e.g. my-first-post)</string>
+    <string name="slug">Slug</string>
+    <string name="post_slug">Post slug (folder name)</string>
+    <string name="use_lowercase">Use lowercase letters, numbers, and hyphens only</string>
+    <string name="section">Section</string>
+    <string name="no_repo_configured">No repository configured</string>
+    <string name="connect_repo_body">Connect your Hugo repository to start editing.</string>
+    <string name="set_up_repository">Set Up Repository</string>
+    <string name="no_posts_yet">No posts yet</string>
+    <string name="create_first_post">Create your first post with the + button below.</string>
+
+    <!-- ── Sync Screen ───────────────────────────────────────────── -->
+    <string name="git_sync">Git Sync</string>
+    <string name="set_up">Set Up</string>
+    <string name="actions">Actions</string>
+    <string name="pull">Pull</string>
+    <string name="push">Push</string>
+    <string name="commit">Commit</string>
+    <string name="commit_and_push">Commit &amp; Push</string>
+    <string name="commit_message">Commit message</string>
+    <string name="message">Message</string>
+    <string name="commit_message_placeholder">Update: my-post</string>
+    <!-- %d = count -->
+    <string name="pending_changes">%d pending change(s)</string>
+    <!-- %d = overflow count -->
+    <string name="and_more">…and %d more</string>
+    <!-- %d = count -->
+    <string name="commits_ahead">%d commit(s) ahead of remote</string>
+    <string name="recent_commits">Recent Commits</string>
+    <!-- %s = ISO timestamp -->
+    <string name="auto_commit">Auto-commit: %s</string>
+    <string name="sync_channel_name">Git Sync</string>
+    <string name="sync_channel_desc">Background Hugo blog sync notifications</string>
+    <string name="sync_success">Sync successful</string>
+    <string name="sync_failed">Sync failed</string>
+
+    <!-- ── Setup Screen ──────────────────────────────────────────── -->
+    <string name="repository_url">Repository URL</string>
+    <string name="url">URL</string>
+    <string name="url_placeholder">https://github.com/you/blog.git  or  git@github.com:you/blog.git</string>
+    <string name="ssh_auto_convert_note">HTTPS URL will be auto-converted to SSH format (git@github.com:…)</string>
+    <string name="authentication">Authentication</string>
+    <string name="pat_auth_label">Personal Access Token (HTTPS)</string>
+    <string name="ssh_auth_label">SSH Deploy Key</string>
+    <string name="personal_access_token">Personal Access Token</string>
+    <string name="git_username">Git username</string>
+    <string name="ssh_key">SSH Key</string>
+    <string name="generate_ssh_key">Generate SSH Key</string>
+    <string name="import_ssh_key">Import SSH Key</string>
+    <string name="generate_key_pair">Generate Ed25519 Key Pair</string>
+    <string name="public_key">Public Key</string>
+    <string name="public_key_card_label">Public Key (add to GitHub → Deploy Keys)</string>
+    <string name="copy_to_clipboard">Copy to Clipboard</string>
+    <string name="copy_public_key">Copy to clipboard</string>
+    <string name="add_to_github">Add to GitHub Deploy Keys</string>
+    <string name="author_info">Author Info</string>
+    <string name="your_name">Your Name</string>
+    <string name="your_email">Your Email</string>
+    <string name="cloning">Cloning…</string>
+    <string name="clone_repository">Clone Repository</string>
+
+    <!-- ── Settings Screen ──────────────────────────────────────── -->
+    <string name="author">Author</string>
+    <string name="name">Name</string>
+    <string name="email">Email</string>
+    <string name="author_name">Author name</string>
+    <string name="author_email">Author email</string>
+    <string name="media_storage">Media Storage</string>
+    <string name="media_storage_desc">Where images captured or picked are saved in the repo:</string>
+    <string name="page_bundle_label">Page Bundle (content/posts/&lt;slug&gt;/image.jpg)</string>
+    <string name="page_bundle_subtitle">Hugo best practice – images live next to index.md</string>
+    <string name="static_folder_label">Static Folder (/static/images/&lt;slug&gt;/image.jpg)</string>
+    <string name="static_folder_subtitle">All images in /static/images/</string>
+    <string name="background_sync">Background Sync</string>
+    <string name="auto_sync">Auto Sync</string>
+    <string name="auto_sync_subtitle">Pull &amp; push in background (Wi-Fi only)</string>
+    <!-- %d = minutes -->
+    <string name="sync_interval">Interval: every %d minutes</string>
+    <string name="min_interval">15 min</string>
+    <string name="max_interval">120 min</string>
+    <string name="repository">Repository</string>
+    <!-- %s = url/path -->
+    <string name="repo_url_display">URL: %s</string>
+    <string name="repo_local_display">Local: %s</string>
+    <string name="disconnect_repository">Disconnect Repository</string>
+
+    <!-- ── Appearance / Theme ────────────────────────────────────── -->
+    <string name="appearance">Appearance</string>
+    <string name="theme_mode">Theme Mode</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="edit_front_matter">Edit Front Matter</string>
+    <string name="source_mode">Source</string>
+    <string name="preview_mode">Preview</string>
+</resources>

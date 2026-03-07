@@ -1,0 +1,245 @@
+package com.soogoino.huga.ui.settings
+
+import android.content.Context
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.soogoino.huga.R
+import com.soogoino.huga.data.prefs.AppPreferences
+import com.soogoino.huga.data.prefs.AppSettings
+import com.soogoino.huga.data.prefs.MediaStrategy
+import com.soogoino.huga.data.prefs.ThemeMode
+import com.soogoino.huga.worker.GitSyncWorker
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+// ─── ViewModel ───────────────────────────────────────────────────────────────
+
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val prefs: AppPreferences,
+) : ViewModel() {
+
+    val settings: StateFlow<AppSettings> = prefs.settings
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
+
+    fun setAuthorName(v: String) = viewModelScope.launch { prefs.update { copy(authorName = v) } }
+    fun setAuthorEmail(v: String) = viewModelScope.launch { prefs.update { copy(authorEmail = v) } }
+    fun setMediaStrategy(v: MediaStrategy) = viewModelScope.launch { prefs.update { copy(mediaStrategy = v) } }
+    fun setAutoSync(enabled: Boolean) = viewModelScope.launch {
+        prefs.update { copy(autoSyncEnabled = enabled) }
+        if (enabled) GitSyncWorker.schedule(context, settings.value.autoSyncIntervalMinutes.toLong())
+        else GitSyncWorker.cancel(context)
+    }
+    fun setAutoSyncInterval(minutes: Int) = viewModelScope.launch {
+        prefs.update { copy(autoSyncIntervalMinutes = minutes) }
+        if (settings.value.autoSyncEnabled) GitSyncWorker.schedule(context, minutes.toLong())
+    }
+    fun setThemeMode(mode: ThemeMode) = viewModelScope.launch { prefs.update { copy(themeMode = mode) } }
+    fun resetSetup() = viewModelScope.launch { prefs.update { copy(isRepoSetup = false, repoUrl = "", localRepoPath = "") } }
+}
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    onNavigateUp: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel(),
+) {
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    var authorName by remember(settings.authorName) { mutableStateOf(settings.authorName) }
+    var authorEmail by remember(settings.authorEmail) { mutableStateOf(settings.authorEmail) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.settings)) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateUp) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            // Author info
+            SettingsSection(title = stringResource(R.string.author), icon = Icons.Outlined.Person) {
+                OutlinedTextField(
+                    value = authorName,
+                    onValueChange = { authorName = it; viewModel.setAuthorName(it) },
+                    label = { Text(stringResource(R.string.name)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = authorEmail,
+                    onValueChange = { authorEmail = it; viewModel.setAuthorEmail(it) },
+                    label = { Text(stringResource(R.string.email)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+            }
+
+            // Media strategy
+            SettingsSection(title = stringResource(R.string.media_storage), icon = Icons.Outlined.Image) {
+                Text(stringResource(R.string.media_storage_desc),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(8.dp))
+                Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    MediaStrategyRow(
+                        selected = settings.mediaStrategy == MediaStrategy.PAGE_BUNDLE,
+                        label = stringResource(R.string.page_bundle_label),
+                        subtitle = stringResource(R.string.page_bundle_subtitle),
+                        onClick = { viewModel.setMediaStrategy(MediaStrategy.PAGE_BUNDLE) },
+                    )
+                    MediaStrategyRow(
+                        selected = settings.mediaStrategy == MediaStrategy.STATIC_FOLDER,
+                        label = stringResource(R.string.static_folder_label),
+                        subtitle = stringResource(R.string.static_folder_subtitle),
+                        onClick = { viewModel.setMediaStrategy(MediaStrategy.STATIC_FOLDER) },
+                    )
+                }
+            }
+
+            // Auto sync
+            SettingsSection(title = stringResource(R.string.background_sync), icon = Icons.Outlined.Sync) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.auto_sync), style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.auto_sync_subtitle), style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = settings.autoSyncEnabled, onCheckedChange = viewModel::setAutoSync)
+                }
+
+                if (settings.autoSyncEnabled) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(stringResource(R.string.sync_interval, settings.autoSyncIntervalMinutes),
+                        style = MaterialTheme.typography.bodySmall)
+                    Slider(
+                        value = settings.autoSyncIntervalMinutes.toFloat(),
+                        onValueChange = { viewModel.setAutoSyncInterval(it.toInt()) },
+                        valueRange = 15f..120f,
+                        steps = 6,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(stringResource(R.string.min_interval), style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(R.string.max_interval), style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+
+            // Repo info
+            if (settings.isRepoSetup) {
+                SettingsSection(title = stringResource(R.string.repository), icon = Icons.Outlined.FolderOpen) {
+                    Text(stringResource(R.string.repo_url_display, settings.repoUrl), style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.repo_local_display, settings.localRepoPath), style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = viewModel::resetSetup,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    ) {
+                        Icon(Icons.Outlined.LinkOff, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.disconnect_repository))
+                    }
+                }
+            }
+
+            // Appearance
+            SettingsSection(title = stringResource(R.string.appearance), icon = Icons.Outlined.Palette) {
+                Text(stringResource(R.string.theme_mode), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(8.dp))
+                val themeModes = listOf(
+                    ThemeMode.SYSTEM to R.string.theme_system,
+                    ThemeMode.LIGHT to R.string.theme_light,
+                    ThemeMode.DARK to R.string.theme_dark,
+                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    themeModes.forEachIndexed { index, (mode, labelRes) ->
+                        SegmentedButton(
+                            selected = settings.themeMode == mode,
+                            onClick = { viewModel.setThemeMode(mode) },
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = themeModes.size),
+                            icon = { SegmentedButtonDefaults.ActiveIcon() },
+                            label = { Text(stringResource(labelRes)) },
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun SettingsSection(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        content()
+    }
+}
+
+@Composable
+private fun MediaStrategyRow(selected: Boolean, label: String, subtitle: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Spacer(Modifier.width(8.dp))
+        Column {
+            Text(label, style = MaterialTheme.typography.bodyMedium)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
