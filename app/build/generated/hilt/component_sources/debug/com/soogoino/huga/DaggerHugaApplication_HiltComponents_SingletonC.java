@@ -559,7 +559,7 @@ public final class DaggerHugaApplication_HiltComponents_SingletonC {
           return (T) new PostsViewModel(viewModelCImpl.observePostsUseCase(), viewModelCImpl.scanPostsUseCase(), viewModelCImpl.createPostUseCase(), viewModelCImpl.deletePostUseCase(), singletonCImpl.syncRepoUseCase(), singletonCImpl.jGitRepositoryImplProvider.get(), singletonCImpl.appPreferencesProvider.get());
 
           case 4: // com.soogoino.huga.ui.settings.SettingsViewModel 
-          return (T) new SettingsViewModel(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.appPreferencesProvider.get());
+          return (T) new SettingsViewModel(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.appPreferencesProvider.get(), singletonCImpl.secureTokenStoreProvider.get());
 
           case 5: // com.soogoino.huga.ui.sync.SetupViewModel 
           return (T) new SetupViewModel(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.appPreferencesProvider.get(), singletonCImpl.jGitRepositoryImplProvider.get(), singletonCImpl.sshKeyManagerProvider.get(), singletonCImpl.secureTokenStoreProvider.get());
@@ -653,13 +653,13 @@ public final class DaggerHugaApplication_HiltComponents_SingletonC {
 
     private Provider<PostRepository> postRepositoryProvider;
 
+    private Provider<SecureTokenStore> secureTokenStoreProvider;
+
     private Provider<AppPreferences> appPreferencesProvider;
 
     private Provider<GitSyncWorker_AssistedFactory> gitSyncWorker_AssistedFactoryProvider;
 
     private Provider<SshKeyManager> sshKeyManagerProvider;
-
-    private Provider<SecureTokenStore> secureTokenStoreProvider;
 
     private SingletonCImpl(ApplicationContextModule applicationContextModuleParam) {
       this.applicationContextModule = applicationContextModuleParam;
@@ -697,10 +697,10 @@ public final class DaggerHugaApplication_HiltComponents_SingletonC {
       this.jGitRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<JGitRepositoryImpl>(singletonCImpl, 1));
       this.provideDatabaseProvider = DoubleCheck.provider(new SwitchingProvider<AppDatabase>(singletonCImpl, 3));
       this.postRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<PostRepository>(singletonCImpl, 2));
+      this.secureTokenStoreProvider = DoubleCheck.provider(new SwitchingProvider<SecureTokenStore>(singletonCImpl, 5));
       this.appPreferencesProvider = DoubleCheck.provider(new SwitchingProvider<AppPreferences>(singletonCImpl, 4));
       this.gitSyncWorker_AssistedFactoryProvider = SingleCheck.provider(new SwitchingProvider<GitSyncWorker_AssistedFactory>(singletonCImpl, 0));
-      this.sshKeyManagerProvider = DoubleCheck.provider(new SwitchingProvider<SshKeyManager>(singletonCImpl, 5));
-      this.secureTokenStoreProvider = DoubleCheck.provider(new SwitchingProvider<SecureTokenStore>(singletonCImpl, 6));
+      this.sshKeyManagerProvider = DoubleCheck.provider(new SwitchingProvider<SshKeyManager>(singletonCImpl, 6));
     }
 
     @Override
@@ -760,13 +760,13 @@ public final class DaggerHugaApplication_HiltComponents_SingletonC {
           return (T) DatabaseModule_ProvideDatabaseFactory.provideDatabase(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           case 4: // com.soogoino.huga.data.prefs.AppPreferences 
-          return (T) new AppPreferences(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+          return (T) new AppPreferences(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.secureTokenStoreProvider.get());
 
-          case 5: // com.soogoino.huga.git.SshKeyManager 
-          return (T) new SshKeyManager();
-
-          case 6: // com.soogoino.huga.data.repository.SecureTokenStore 
+          case 5: // com.soogoino.huga.data.repository.SecureTokenStore 
           return (T) new SecureTokenStore(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+
+          case 6: // com.soogoino.huga.git.SshKeyManager 
+          return (T) new SshKeyManager();
 
           default: throw new AssertionError(id);
         }

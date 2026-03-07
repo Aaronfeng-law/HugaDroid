@@ -64,8 +64,8 @@ class SshKeyManager @Inject constructor() {
         } $KEY_COMMENT"
         pubFile.writeText(pubKeyStr)
 
-        Log.i(SSHTAG, "Generated key pair at ${privFile.absolutePath}")
-        Log.i(SSHTAG, "Public key: $pubKeyStr")
+        Log.d(SSHTAG, "Generated key pair at ${privFile.absolutePath}")
+        Log.d(SSHTAG, "Public key fingerprint generated (${pubKeyStr.length} chars)")
         SshKeyPair(privFile.absolutePath, pubKeyStr)
     }
 

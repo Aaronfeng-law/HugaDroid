@@ -34,10 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.repeatOnLifecycle
 import android.net.Uri
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
@@ -86,13 +83,6 @@ fun EditorScreen(
     // Load post on first composition
     LaunchedEffect(filePath) { viewModel.loadPost(filePath) }
 
-    // Force-save on lifecycle stop
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(lifecycle) {
-        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            // When leaving STARTED, force-save
-        }
-    }
     DisposableEffect(Unit) { onDispose { viewModel.forceSave() } }
 
     // Camera capture URI

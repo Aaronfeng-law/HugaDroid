@@ -249,6 +249,7 @@ string collapse
 string commit
 string commit_and_push
 string commit_message
+string commit_message_auto_hint
 string commit_message_placeholder
 string commits_ahead
 string connect_repo_body
@@ -323,6 +324,10 @@ string insert_image
 string insert_media
 string keep
 string keywords
+string language
+string language_en
+string language_system
+string language_zh_tw
 string m3c_bottom_sheet_collapse_description
 string m3c_bottom_sheet_dismiss_description
 string m3c_bottom_sheet_drag_handle_description
@@ -432,6 +437,7 @@ string repository_url
 string save
 string saved
 string saving
+string scroll_to_top
 string search
 string search_posts_placeholder
 string section

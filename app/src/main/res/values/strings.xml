@@ -130,6 +130,8 @@
     <string name="commit_message">Commit message</string>
     <string name="message">Message</string>
     <string name="commit_message_placeholder">Update: my-post</string>
+    <string name="commit_message_auto_hint">Leave blank to use an auto-generated message</string>
+    <string name="scroll_to_top">Scroll to top</string>
     <!-- %d = count -->
     <string name="pending_changes">%d pending change(s)</string>
     <!-- %d = overflow count -->
@@ -200,6 +202,12 @@
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
+
+    <!-- ── Language ──────────────────────────────────────────────── -->
+    <string name="language">Language</string>
+    <string name="language_system">System</string>
+    <string name="language_en">English</string>
+    <string name="language_zh_tw">繁中</string>
     <string name="edit_front_matter">Edit Front Matter</string>
     <string name="source_mode">Source</string>
     <string name="preview_mode">Preview</string>

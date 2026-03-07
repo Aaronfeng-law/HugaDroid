@@ -1,6 +1,7 @@
 package com.soogoino.huga.ui.settings
 
 import android.content.Context
+import android.os.Build
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -25,11 +26,15 @@ import com.soogoino.huga.data.prefs.AppPreferences
 import com.soogoino.huga.data.prefs.AppSettings
 import com.soogoino.huga.data.prefs.MediaStrategy
 import com.soogoino.huga.data.prefs.ThemeMode
+import com.soogoino.huga.data.repository.SecureTokenStore
 import com.soogoino.huga.worker.GitSyncWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 
 // ─── ViewModel ───────────────────────────────────────────────────────────────
@@ -38,6 +43,7 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val prefs: AppPreferences,
+    private val secureTokenStore: SecureTokenStore,
 ) : ViewModel() {
 
     val settings: StateFlow<AppSettings> = prefs.settings
@@ -48,15 +54,45 @@ class SettingsViewModel @Inject constructor(
     fun setMediaStrategy(v: MediaStrategy) = viewModelScope.launch { prefs.update { copy(mediaStrategy = v) } }
     fun setAutoSync(enabled: Boolean) = viewModelScope.launch {
         prefs.update { copy(autoSyncEnabled = enabled) }
-        if (enabled) GitSyncWorker.schedule(context, settings.value.autoSyncIntervalMinutes.toLong())
-        else GitSyncWorker.cancel(context)
+        if (enabled) {
+            // THR-02: read fresh settings to avoid stale StateFlow snapshot
+            val interval = prefs.settings.first().autoSyncIntervalMinutes.toLong()
+            GitSyncWorker.schedule(context, interval)
+        } else {
+            GitSyncWorker.cancel(context)
+        }
     }
     fun setAutoSyncInterval(minutes: Int) = viewModelScope.launch {
         prefs.update { copy(autoSyncIntervalMinutes = minutes) }
-        if (settings.value.autoSyncEnabled) GitSyncWorker.schedule(context, minutes.toLong())
+        val isEnabled = prefs.settings.first().autoSyncEnabled
+        if (isEnabled) GitSyncWorker.schedule(context, minutes.toLong())
     }
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch { prefs.update { copy(themeMode = mode) } }
-    fun resetSetup() = viewModelScope.launch { prefs.update { copy(isRepoSetup = false, repoUrl = "", localRepoPath = "") } }
+    fun setLanguage(tag: String) = viewModelScope.launch {
+        prefs.update { copy(appLanguage = tag) }
+        // Also persist to plain SharedPreferences so attachBaseContext() can read it
+        // synchronously (DataStore is async and unsafe to block on in early lifecycle).
+        context.getSharedPreferences("huga_lang", android.content.Context.MODE_PRIVATE)
+            .edit().putString("app_language", tag).apply()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val locales = if (tag.isEmpty()) android.os.LocaleList.getEmptyLocaleList()
+                          else android.os.LocaleList.forLanguageTags(tag)
+            context.getSystemService(android.app.LocaleManager::class.java).applicationLocales = locales
+        }
+    }
+    fun resetSetup() = viewModelScope.launch {
+        // Wipe credentials first
+        withContext(Dispatchers.IO) {
+            secureTokenStore.clearToken()
+            // Delete SSH keys
+            val sshDir = context.filesDir.resolve(".ssh")
+            sshDir.resolve("id_ed25519").delete()
+            sshDir.resolve("id_ed25519.pub").delete()
+            // Delete cloned repo
+            context.filesDir.resolve("repo").deleteRecursively()
+        }
+        prefs.update { copy(isRepoSetup = false, repoUrl = "", localRepoPath = "", sshKeyPath = "") }
+    }
 }
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
@@ -108,6 +144,49 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
+            }
+
+            // Appearance
+            SettingsSection(title = stringResource(R.string.appearance), icon = Icons.Outlined.Palette) {
+                Text(stringResource(R.string.theme_mode), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(8.dp))
+                val themeModes = listOf(
+                    ThemeMode.SYSTEM to R.string.theme_system,
+                    ThemeMode.LIGHT to R.string.theme_light,
+                    ThemeMode.DARK to R.string.theme_dark,
+                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    themeModes.forEachIndexed { index, (mode, labelRes) ->
+                        SegmentedButton(
+                            selected = settings.themeMode == mode,
+                            onClick = { viewModel.setThemeMode(mode) },
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = themeModes.size),
+                            icon = { SegmentedButtonDefaults.ActiveIcon() },
+                            label = { Text(stringResource(labelRes)) },
+                        )
+                    }
+                }
+            }
+
+            // Language
+            SettingsSection(title = stringResource(R.string.language), icon = Icons.Outlined.Language) {
+                val langOptions = listOf(
+                    "" to R.string.language_system,
+                    "en" to R.string.language_en,
+                    "zh-TW" to R.string.language_zh_tw,
+                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    langOptions.forEachIndexed { index, (tag, labelRes) ->
+                        SegmentedButton(
+                            selected = settings.appLanguage == tag,
+                            onClick = { viewModel.setLanguage(tag) },
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = langOptions.size),
+                            icon = { SegmentedButtonDefaults.ActiveIcon() },
+                            label = { Text(stringResource(labelRes)) },
+                        )
+                    }
+                }
             }
 
             // Media strategy
@@ -164,48 +243,30 @@ fun SettingsScreen(
                 }
             }
 
-            // Repo info
+            // Repo info (URL + local path only)
             if (settings.isRepoSetup) {
                 SettingsSection(title = stringResource(R.string.repository), icon = Icons.Outlined.FolderOpen) {
                     Text(stringResource(R.string.repo_url_display, settings.repoUrl), style = MaterialTheme.typography.bodySmall)
                     Text(stringResource(R.string.repo_local_display, settings.localRepoPath), style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = viewModel::resetSetup,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    ) {
-                        Icon(Icons.Outlined.LinkOff, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.disconnect_repository))
-                    }
                 }
             }
 
-            // Appearance
-            SettingsSection(title = stringResource(R.string.appearance), icon = Icons.Outlined.Palette) {
-                Text(stringResource(R.string.theme_mode), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(8.dp))
-                val themeModes = listOf(
-                    ThemeMode.SYSTEM to R.string.theme_system,
-                    ThemeMode.LIGHT to R.string.theme_light,
-                    ThemeMode.DARK to R.string.theme_dark,
-                )
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    themeModes.forEachIndexed { index, (mode, labelRes) ->
-                        SegmentedButton(
-                            selected = settings.themeMode == mode,
-                            onClick = { viewModel.setThemeMode(mode) },
-                            shape = SegmentedButtonDefaults.itemShape(index = index, count = themeModes.size),
-                            icon = { SegmentedButtonDefaults.ActiveIcon() },
-                            label = { Text(stringResource(labelRes)) },
-                        )
-                    }
+            Spacer(Modifier.height(8.dp))
+
+            // Disconnect — standalone at the very bottom
+            if (settings.isRepoSetup) {
+                OutlinedButton(
+                    onClick = viewModel::resetSetup,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) {
+                    Icon(Icons.Outlined.LinkOff, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.disconnect_repository))
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(24.dp))
         }
     }
 }

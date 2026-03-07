@@ -40,14 +40,14 @@ public class AppDatabase_Impl : AppDatabase() {
   }
 
   protected override fun createOpenDelegate(): RoomOpenDelegate {
-    val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(1,
-        "4442b670f13ac6213b83eed4dc4729a7", "8f5b58ebe2f5e2c2895acb4885abcc5b") {
+    val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(2,
+        "dc60c1a48eeb176756517d8d19f6d9a1", "c0c83c71b9caf6076f8cae4585e72b9e") {
       public override fun createAllTables(connection: SQLiteConnection) {
-        connection.execSQL("CREATE TABLE IF NOT EXISTS `posts` (`filePath` TEXT NOT NULL, `relativePath` TEXT NOT NULL, `slug` TEXT NOT NULL, `title` TEXT NOT NULL, `date` TEXT NOT NULL, `draft` INTEGER NOT NULL, `tags` TEXT NOT NULL, `categories` TEXT NOT NULL, `description` TEXT NOT NULL, `lastModified` INTEGER NOT NULL, PRIMARY KEY(`filePath`))")
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `posts` (`filePath` TEXT NOT NULL, `relativePath` TEXT NOT NULL, `slug` TEXT NOT NULL, `title` TEXT NOT NULL, `date` TEXT NOT NULL, `draft` INTEGER NOT NULL, `tags` TEXT NOT NULL, `categories` TEXT NOT NULL, `description` TEXT NOT NULL, `lastModified` INTEGER NOT NULL, `wordCount` INTEGER NOT NULL, PRIMARY KEY(`filePath`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `commits` (`hash` TEXT NOT NULL, `shortHash` TEXT NOT NULL, `message` TEXT NOT NULL, `authorName` TEXT NOT NULL, `authorEmail` TEXT NOT NULL, `time` INTEGER NOT NULL, PRIMARY KEY(`hash`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `drafts` (`filePath` TEXT NOT NULL, `content` TEXT NOT NULL, `savedAt` INTEGER NOT NULL, `isDirty` INTEGER NOT NULL, PRIMARY KEY(`filePath`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
-        connection.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4442b670f13ac6213b83eed4dc4729a7')")
+        connection.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dc60c1a48eeb176756517d8d19f6d9a1')")
       }
 
       public override fun dropAllTables(connection: SQLiteConnection) {
@@ -92,6 +92,8 @@ public class AppDatabase_Impl : AppDatabase() {
         _columnsPosts.put("description", TableInfo.Column("description", "TEXT", true, 0, null,
             TableInfo.CREATED_FROM_ENTITY))
         _columnsPosts.put("lastModified", TableInfo.Column("lastModified", "INTEGER", true, 0, null,
+            TableInfo.CREATED_FROM_ENTITY))
+        _columnsPosts.put("wordCount", TableInfo.Column("wordCount", "INTEGER", true, 0, null,
             TableInfo.CREATED_FROM_ENTITY))
         val _foreignKeysPosts: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
         val _indicesPosts: MutableSet<TableInfo.Index> = mutableSetOf()

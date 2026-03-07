@@ -55,9 +55,17 @@ class JschSshSessionFactory(
                 throw TransportException(uri, "SSH key not found at $keyPath")
             }
 
+            // TOFU: auto-accept new host keys and persist to known_hosts;
+            // reject if fingerprint changes on subsequent connections.
+            val sshDir = keyFile.parentFile
+            if (sshDir != null) {
+                val knownHosts = File(sshDir, "known_hosts")
+                if (!knownHosts.exists()) knownHosts.createNewFile()
+                jsch.setKnownHosts(knownHosts.absolutePath)
+            }
+
             val session: Session = jsch.getSession(user, host, port)
-            // TOFU: accept all server host keys (equivalent to StrictHostKeyChecking=no)
-            session.setConfig("StrictHostKeyChecking", "no")
+            session.setConfig("StrictHostKeyChecking", "accept-new")
             session.setConfig("PreferredAuthentications", "publickey")
             // Avoid server-alive issues on Android networking
             session.setConfig("ServerAliveInterval", "60")

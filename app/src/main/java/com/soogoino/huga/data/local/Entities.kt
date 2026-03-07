@@ -16,6 +16,7 @@ data class PostEntity(
     val categories: String,   // JSON-encoded list
     val description: String,
     val lastModified: Long,
+    val wordCount: Int = 0,   // pre-computed CJK-aware word count
 )
 
 /** Commit log cache. */

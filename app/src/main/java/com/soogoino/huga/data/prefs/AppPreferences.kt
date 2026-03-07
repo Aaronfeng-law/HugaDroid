@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
+import com.soogoino.huga.data.repository.SecureTokenStore
 import com.soogoino.huga.git.GitAuth
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -30,6 +31,7 @@ data class AppSettings(
     val autoSyncIntervalMinutes: Int = 30,
     val isRepoSetup: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val appLanguage: String = "",   // "" = system, "en", "zh-TW", ...
 ) {
     /** Build a [GitAuth] from current settings. Returns null if credentials are missing. */
     fun toGitAuth(): GitAuth? = when (authType) {
@@ -40,7 +42,8 @@ data class AppSettings(
 
 @Singleton
 class AppPreferences @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val secureTokenStore: SecureTokenStore,
 ) {
     private object Keys {
         val REPO_URL = stringPreferencesKey("repo_url")
@@ -55,6 +58,7 @@ class AppPreferences @Inject constructor(
         val IS_REPO_SETUP = booleanPreferencesKey("is_repo_setup")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val PINNED_POSTS = stringSetPreferencesKey("pinned_posts")
+        val LANGUAGE = stringPreferencesKey("app_language")
     }
 
     val pinnedPosts: Flow<Set<String>> = context.dataStore.data.map { prefs ->
@@ -69,10 +73,13 @@ class AppPreferences @Inject constructor(
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { prefs ->
+        val authType = runCatching { AuthType.valueOf(prefs[Keys.AUTH_TYPE] ?: "") }.getOrDefault(AuthType.PAT)
         AppSettings(
             repoUrl = prefs[Keys.REPO_URL] ?: "",
             localRepoPath = prefs[Keys.LOCAL_REPO_PATH] ?: "",
-            authType = runCatching { AuthType.valueOf(prefs[Keys.AUTH_TYPE] ?: "") }.getOrDefault(AuthType.PAT),
+            authType = authType,
+            // PAT is stored encrypted in EncryptedSharedPreferences, not DataStore
+            patToken = if (authType == AuthType.PAT) secureTokenStore.getToken() else "",
             sshKeyPath = prefs[Keys.SSH_KEY_PATH] ?: "",
             authorName = prefs[Keys.AUTHOR_NAME] ?: "",
             authorEmail = prefs[Keys.AUTHOR_EMAIL] ?: "",
@@ -81,6 +88,7 @@ class AppPreferences @Inject constructor(
             autoSyncIntervalMinutes = prefs[Keys.AUTO_SYNC_INTERVAL] ?: 30,
             isRepoSetup = prefs[Keys.IS_REPO_SETUP] ?: false,
             themeMode = runCatching { ThemeMode.valueOf(prefs[Keys.THEME_MODE] ?: "") }.getOrDefault(ThemeMode.SYSTEM),
+            appLanguage = prefs[Keys.LANGUAGE] ?: "",
         )
     }
 
@@ -88,10 +96,12 @@ class AppPreferences @Inject constructor(
         // Read current, apply block, write back
         context.dataStore.edit { prefs ->
             // Re-read via current prefs snapshot
+            val authType = runCatching { AuthType.valueOf(prefs[Keys.AUTH_TYPE] ?: "") }.getOrDefault(AuthType.PAT)
             val current = AppSettings(
                 repoUrl = prefs[Keys.REPO_URL] ?: "",
                 localRepoPath = prefs[Keys.LOCAL_REPO_PATH] ?: "",
-                authType = runCatching { AuthType.valueOf(prefs[Keys.AUTH_TYPE] ?: "") }.getOrDefault(AuthType.PAT),
+                authType = authType,
+                patToken = if (authType == AuthType.PAT) secureTokenStore.getToken() else "",
                 sshKeyPath = prefs[Keys.SSH_KEY_PATH] ?: "",
                 authorName = prefs[Keys.AUTHOR_NAME] ?: "",
                 authorEmail = prefs[Keys.AUTHOR_EMAIL] ?: "",
@@ -100,6 +110,7 @@ class AppPreferences @Inject constructor(
                 autoSyncIntervalMinutes = prefs[Keys.AUTO_SYNC_INTERVAL] ?: 30,
                 isRepoSetup = prefs[Keys.IS_REPO_SETUP] ?: false,
                 themeMode = runCatching { ThemeMode.valueOf(prefs[Keys.THEME_MODE] ?: "") }.getOrDefault(ThemeMode.SYSTEM),
+                appLanguage = prefs[Keys.LANGUAGE] ?: "",
             )
             val updated = current.block()
             prefs[Keys.REPO_URL] = updated.repoUrl
@@ -113,6 +124,7 @@ class AppPreferences @Inject constructor(
             prefs[Keys.AUTO_SYNC_INTERVAL] = updated.autoSyncIntervalMinutes
             prefs[Keys.IS_REPO_SETUP] = updated.isRepoSetup
             prefs[Keys.THEME_MODE] = updated.themeMode.name
+            prefs[Keys.LANGUAGE] = updated.appLanguage
         }
     }
 }

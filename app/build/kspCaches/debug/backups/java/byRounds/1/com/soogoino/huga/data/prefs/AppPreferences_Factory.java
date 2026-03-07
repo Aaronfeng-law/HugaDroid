@@ -1,6 +1,7 @@
 package com.soogoino.huga.data.prefs;
 
 import android.content.Context;
+import com.soogoino.huga.data.repository.SecureTokenStore;
 import dagger.internal.DaggerGenerated;
 import dagger.internal.Factory;
 import dagger.internal.Provider;
@@ -28,24 +29,30 @@ import javax.annotation.processing.Generated;
 public final class AppPreferences_Factory implements Factory<AppPreferences> {
   private final Provider<Context> contextProvider;
 
-  public AppPreferences_Factory(Provider<Context> contextProvider) {
+  private final Provider<SecureTokenStore> secureTokenStoreProvider;
+
+  public AppPreferences_Factory(Provider<Context> contextProvider,
+      Provider<SecureTokenStore> secureTokenStoreProvider) {
     this.contextProvider = contextProvider;
+    this.secureTokenStoreProvider = secureTokenStoreProvider;
   }
 
   @Override
   public AppPreferences get() {
-    return newInstance(contextProvider.get());
+    return newInstance(contextProvider.get(), secureTokenStoreProvider.get());
   }
 
-  public static AppPreferences_Factory create(javax.inject.Provider<Context> contextProvider) {
-    return new AppPreferences_Factory(Providers.asDaggerProvider(contextProvider));
+  public static AppPreferences_Factory create(javax.inject.Provider<Context> contextProvider,
+      javax.inject.Provider<SecureTokenStore> secureTokenStoreProvider) {
+    return new AppPreferences_Factory(Providers.asDaggerProvider(contextProvider), Providers.asDaggerProvider(secureTokenStoreProvider));
   }
 
-  public static AppPreferences_Factory create(Provider<Context> contextProvider) {
-    return new AppPreferences_Factory(contextProvider);
+  public static AppPreferences_Factory create(Provider<Context> contextProvider,
+      Provider<SecureTokenStore> secureTokenStoreProvider) {
+    return new AppPreferences_Factory(contextProvider, secureTokenStoreProvider);
   }
 
-  public static AppPreferences newInstance(Context context) {
-    return new AppPreferences(context);
+  public static AppPreferences newInstance(Context context, SecureTokenStore secureTokenStore) {
+    return new AppPreferences(context, secureTokenStore);
   }
 }

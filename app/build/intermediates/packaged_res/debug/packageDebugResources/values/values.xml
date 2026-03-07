@@ -29,6 +29,7 @@
     <string name="commit">Commit</string>
     <string name="commit_and_push">Commit &amp; Push</string>
     <string name="commit_message">Commit message</string>
+    <string name="commit_message_auto_hint">Leave blank to use an auto-generated message</string>
     <string name="commit_message_placeholder">Update: my-post</string>
     <string name="commits_ahead">%d commit(s) ahead of remote</string>
     <string name="connect_repo_body">Connect your Hugo repository to start editing.</string>
@@ -98,6 +99,10 @@
     <string name="insert_media">Insert Media</string>
     <string name="keep">Keep</string>
     <string name="keywords">Keywords</string>
+    <string name="language">Language</string>
+    <string name="language_en">English</string>
+    <string name="language_system">System</string>
+    <string name="language_zh_tw">繁中</string>
     <string name="max_interval">120 min</string>
     <string name="media_storage">Media Storage</string>
     <string name="media_storage_desc">Where images captured or picked are saved in the repo:</string>
@@ -145,6 +150,7 @@
     <string name="save">Save</string>
     <string name="saved">Saved</string>
     <string name="saving">Saving</string>
+    <string name="scroll_to_top">Scroll to top</string>
     <string name="search">Search</string>
     <string name="search_posts_placeholder">Search posts…</string>
     <string name="section">Section</string>

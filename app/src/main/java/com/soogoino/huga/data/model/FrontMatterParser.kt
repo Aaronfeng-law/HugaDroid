@@ -12,8 +12,9 @@ private val TOML_PATTERN = Regex("""^\s*\+\+\+\s*\n(.*?)\n\+\+\+\s*\n?(.*)""", s
 
 object FrontMatterParser {
 
-    private val yamlLoader = Load(LoadSettings.builder().build())
-    private val yamlDumper = Dump(
+    // ROB-06: Load/Dump instances are NOT thread-safe; create per call to avoid races.
+    private fun newLoader() = Load(LoadSettings.builder().build())
+    private fun newDumper() = Dump(
         DumpSettings.builder()
             .setDefaultFlowStyle(FlowStyle.BLOCK)  // multi-line block style, not inline {}
             .setIndent(4)                           // 4-space indent for list items
@@ -100,7 +101,7 @@ object FrontMatterParser {
     @Suppress("UNCHECKED_CAST")
     private fun parseYaml(yaml: String): HugoFrontMatter {
         val map = runCatching {
-            yamlLoader.loadFromString(yaml) as? Map<String, Any>
+            newLoader().loadFromString(yaml) as? Map<String, Any>
         }.getOrNull() ?: return HugoFrontMatter()
 
         val knownKeys = setOf("title", "date", "draft", "tags", "categories", "keywords", "description", "slug", "weight", "cover")
@@ -131,6 +132,7 @@ object FrontMatterParser {
     }
 
     private fun toYaml(fm: HugoFrontMatter): String {
+        val dumper = newDumper()
         val map = linkedMapOf<String, Any>()
         map["title"] = fm.title
         if (fm.date.isNotBlank()) map["date"] = fm.date
@@ -146,7 +148,7 @@ object FrontMatterParser {
         fm.weight?.let { map["weight"] = it }
         if (fm.coverImage.isNotBlank()) map["cover"] = fm.coverImage
         fm.extra.forEach { (k, v) -> map[k] = v }
-        return yamlDumper.dumpToString(map)
+        return dumper.dumpToString(map)
     }
 
     // ─── TOML ────────────────────────────────────────────────────────────────

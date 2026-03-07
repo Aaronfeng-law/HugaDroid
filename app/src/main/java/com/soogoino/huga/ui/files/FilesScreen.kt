@@ -77,7 +77,7 @@ class FilesViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(FilesUiState())
     val uiState: StateFlow<FilesUiState> = _uiState.asStateFlow()
-    private val clipboardPaths = mutableListOf<String>()
+    private val clipboardPaths = java.util.concurrent.CopyOnWriteArrayList<String>()
 
     init {
         viewModelScope.launch {
@@ -444,9 +444,6 @@ fun FilesScreen(
                             }
                         }
                     } else {
-                        IconButton(onClick = onNavigateToSettings) {
-                            Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings))
-                        }
                         Box {
                             IconButton(onClick = { showNormalActionsMenu = true }) {
                                 Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.more_options))
@@ -474,6 +471,9 @@ fun FilesScreen(
                                     enabled = uiState.clipboardCount > 0,
                                 )
                             }
+                        }
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings))
                         }
                     }
                 },

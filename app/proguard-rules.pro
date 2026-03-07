@@ -2,10 +2,6 @@
 -keep class org.eclipse.jgit.** { *; }
 -dontwarn org.eclipse.jgit.**
 
-# Apache Mina SSHD
--keep class org.apache.sshd.** { *; }
--dontwarn org.apache.sshd.**
-
 # BouncyCastle
 -keep class org.bouncycastle.** { *; }
 -dontwarn org.bouncycastle.**

@@ -24,6 +24,9 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext ctx: Context): AppDatabase =
         Room.databaseBuilder(ctx, AppDatabase::class.java, "huga_db")
+            // ROB-12: fallbackToDestructiveMigration() silently wipes Room data on any
+            // schema bump. Add explicit Migration(oldVer, newVer) objects here before
+            // shipping any database schema change to production.
             .fallbackToDestructiveMigration()
             .build()
 

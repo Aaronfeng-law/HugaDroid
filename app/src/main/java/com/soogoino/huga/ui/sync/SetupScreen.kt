@@ -34,8 +34,10 @@ import com.soogoino.huga.git.GitResult
 import com.soogoino.huga.git.SshKeyManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
@@ -87,8 +89,9 @@ class SetupViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val hasKey = sshKeyManager.hasKey(sshDir)
-            val pubKey = if (hasKey) sshKeyManager.readPublicKey(sshDir) ?: "" else ""
+            // THR-03: SshKeyManager reads files — must run on IO dispatcher
+            val hasKey = withContext(Dispatchers.IO) { sshKeyManager.hasKey(sshDir) }
+            val pubKey = if (hasKey) withContext(Dispatchers.IO) { sshKeyManager.readPublicKey(sshDir) ?: "" } else ""
             val token = secureTokenStore.getToken()
             prefs.settings.first().let { s ->
                 _uiState.update {
@@ -126,15 +129,15 @@ class SetupViewModel @Inject constructor(
         }
     }
 
-    /** Convert https://github.com/owner/repo → git@github.com:owner/repo.git
-     *  Handles trailing slashes, .git suffix, and extra path segments. */
+    /** Convert common HTTPS repo URLs to SSH form.
+     *  Supports github.com, gitlab.com, bitbucket.org and any generic host. */
     private fun toSshUrl(url: String): String {
-        // Normalize: strip whitespace, trailing slashes, and optional .git suffix
         val normalized = url.trim().trimEnd('/').removeSuffix(".git")
-        val httpsRegex = Regex("""https?://github\.com/([^/]+)/([^/]+)$""")
+        // Match any https?://<host>/<owner>/<repo>
+        val httpsRegex = Regex("""https?://([^/]+)/([^/]+)/([^/]+)$""")
         val match = httpsRegex.find(normalized) ?: return url.trim()
-        val (owner, repo) = match.destructured
-        return "git@github.com:$owner/$repo.git"
+        val (host, owner, repo) = match.destructured
+        return "git@$host:$owner/$repo.git"
     }
 
     fun cloneAndSetup() {

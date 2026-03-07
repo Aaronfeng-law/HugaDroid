@@ -136,9 +136,10 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
     ): GitResult<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             Git.open(File(localPath)).use { git ->
-                // Stage all
+                // Stage additions
                 git.add().addFilepattern(".").call()
-                git.rm().addFilepattern(".").setCached(true).call() // stage deletions
+                // Stage deletions (files removed from disk but still tracked)
+                git.add().setUpdate(true).addFilepattern(".").call()
 
                 // Commit
                 val personIdent = org.eclipse.jgit.lib.PersonIdent(authorName, authorEmail)
@@ -153,7 +154,19 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
                     .setProgressMonitor(progressMonitor(onProgress))
                     .setTransportConfigCallback(transportConfigCallback(auth))
                 credentialsProvider(auth)?.let { pushCmd.setCredentialsProvider(it) }
-                pushCmd.call()
+                val pushResults = pushCmd.call()
+                // Detect remote rejections (JGit encodes them in result, not as exceptions)
+                for (result in pushResults) {
+                    for (update in result.remoteUpdates) {
+                        val status = update.status
+                        if (status == org.eclipse.jgit.transport.RemoteRefUpdate.Status.REJECTED_NONFASTFORWARD ||
+                            status == org.eclipse.jgit.transport.RemoteRefUpdate.Status.REJECTED_REMOTE_CHANGED ||
+                            status == org.eclipse.jgit.transport.RemoteRefUpdate.Status.REJECTED_OTHER_REASON ||
+                            status == org.eclipse.jgit.transport.RemoteRefUpdate.Status.REJECTED_NODELETE) {
+                            throw Exception("Push rejected by remote (${update.remoteName}): ${status.name}")
+                        }
+                    }
+                }
             }
         }.fold(
             onSuccess = { GitResult.Success(Unit) },
@@ -189,7 +202,11 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
             Git.open(File(localPath)).use { git ->
                 val repo = git.repository
                 val head = repo.resolve("HEAD") ?: return@use 0
-                val tracking = repo.resolve("@{upstream}") ?: return@use 0
+                // ROB-13: @{upstream} is null when no tracking branch is configured
+                val tracking = repo.resolve("@{upstream}") ?: run {
+                    Log.w(TAG, "aheadCount: no upstream tracking branch configured for $localPath")
+                    return@use 0
+                }
                 val walk = org.eclipse.jgit.revwalk.RevWalk(repo)
                 val count = walk.use {
                     it.markStart(it.parseCommit(head))

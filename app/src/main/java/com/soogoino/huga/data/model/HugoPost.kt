@@ -34,6 +34,8 @@ data class HugoPost(
     val frontMatterFormat: FrontMatterFormat,
     val bodyMarkdown: String,
     val lastModified: Long, // epoch milliseconds
+    /** Pre-computed CJK-aware word count; 0 when loaded from list cache. */
+    val wordCount: Int = 0,
 ) {
     val isPageBundle: Boolean get() = filePath.endsWith("index.md")
     val bundleDir: String get() = java.io.File(filePath).parent ?: ""

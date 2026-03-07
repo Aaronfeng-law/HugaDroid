@@ -1,5 +1,8 @@
 package com.soogoino.huga
 
+import android.content.Context
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,6 +23,7 @@ import com.soogoino.huga.ui.navigation.Screen
 import com.soogoino.huga.ui.theme.HugaTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
+import java.util.Locale
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -27,6 +31,24 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var prefs: AppPreferences
+
+    override fun attachBaseContext(newBase: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            // Read from plain SharedPreferences — synchronous and ANR-safe.
+            // (DataStore is async; DataStore access via runBlocking risks ANR in early lifecycle.)
+            val tag = newBase
+                .getSharedPreferences("huga_lang", android.content.Context.MODE_PRIVATE)
+                .getString("app_language", "") ?: ""
+            if (tag.isNotEmpty()) {
+                val locale = Locale.forLanguageTag(tag)
+                val config = Configuration(newBase.resources.configuration)
+                config.setLocale(locale)
+                super.attachBaseContext(newBase.createConfigurationContext(config))
+                return
+            }
+        }
+        super.attachBaseContext(newBase)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

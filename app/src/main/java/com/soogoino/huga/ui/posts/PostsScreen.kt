@@ -1,13 +1,12 @@
 package com.soogoino.huga.ui.posts
 
-import com.soogoino.huga.ui.util.countWords
-import com.soogoino.huga.ui.util.estimatedMinRead
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -22,7 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.soogoino.huga.R
 import com.soogoino.huga.data.model.HugoPost
 import kotlinx.coroutines.flow.collectLatest
-import java.text.SimpleDateFormat
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -42,6 +41,9 @@ fun PostsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val posts by viewModel.filteredPosts.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    val showScrollToTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
 
     var showNewPostDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<HugoPost?>(null) }
@@ -117,11 +119,29 @@ fun PostsScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { showNewPostDialog = true },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.new_post)) },
-            )
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                AnimatedVisibility(
+                    visible = showScrollToTop,
+                    enter = fadeIn() + scaleIn(),
+                    exit = fadeOut() + scaleOut(),
+                ) {
+                    SmallFloatingActionButton(
+                        onClick = { coroutineScope.launch { listState.animateScrollToItem(0) } },
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    ) {
+                        Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.scroll_to_top))
+                    }
+                }
+                FloatingActionButton(
+                    onClick = { showNewPostDialog = true },
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.new_post))
+                }
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { paddingValues ->
@@ -198,6 +218,7 @@ fun PostsScreen(
                 }
                 else -> {
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -331,9 +352,10 @@ private fun PostCard(
                 }
 
                 // Date + reading time
-                if (post.frontMatter.date.isNotBlank() || post.bodyMarkdown.isNotBlank()) {
-                    val wordCount = countWords(post.bodyMarkdown)
-                    val minRead = estimatedMinRead(post.bodyMarkdown)
+                if (post.frontMatter.date.isNotBlank() || post.wordCount > 0) {
+                    val minRead = remember(post.wordCount) {
+                        (post.wordCount / 200.0).coerceAtLeast(1.0).toInt()
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (post.frontMatter.date.isNotBlank()) {
                             Text(
@@ -342,7 +364,7 @@ private fun PostCard(
                                 color = MaterialTheme.colorScheme.outline,
                             )
                         }
-                        if (wordCount > 0) {
+                        if (post.wordCount > 0) {
                             Text(
                                 text = stringResource(R.string.min_read, minRead),
                                 style = MaterialTheme.typography.labelSmall,

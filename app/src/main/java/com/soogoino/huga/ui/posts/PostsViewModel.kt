@@ -7,9 +7,11 @@ import com.soogoino.huga.data.prefs.AppPreferences
 import com.soogoino.huga.domain.*
 import com.soogoino.huga.git.GitRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
@@ -65,14 +67,16 @@ class PostsViewModel @Inject constructor(
         viewModelScope.launch {
             prefs.settings.collect { s ->
                 _uiState.update { it.copy(isRepoSetup = s.isRepoSetup) }
-                // Load available content sections from disk
+                // Load available content sections from disk (IO-bound)
                 if (s.isRepoSetup && s.localRepoPath.isNotBlank()) {
-                    val sections = File(s.localRepoPath, "content")
-                        .listFiles { f -> f.isDirectory }
-                        ?.map { it.name }
-                        ?.sorted()
-                        ?.ifEmpty { listOf("posts") }
-                        ?: listOf("posts")
+                    val sections = withContext(Dispatchers.IO) {
+                        File(s.localRepoPath, "content")
+                            .listFiles { f -> f.isDirectory }
+                            ?.map { it.name }
+                            ?.sorted()
+                            ?.ifEmpty { listOf("posts") }
+                            ?: listOf("posts")
+                    }
                     _uiState.update { it.copy(availableSections = sections) }
                 }
             }
@@ -85,14 +89,18 @@ class PostsViewModel @Inject constructor(
                 }
             }
         }
-        // Initial scan
-        refreshPosts()
+        // Initial scan — skip if Room already has cached data to avoid blocking startup
+        viewModelScope.launch {
+            val hasCached = observePostsUseCase().first().isNotEmpty()
+            if (!hasCached) refreshPosts()
+        }
     }
 
     fun refreshPosts() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             runCatching { scanPostsUseCase() }
+                .onSuccess { _uiState.update { it.copy(isLoading = false) } }
                 .onFailure { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } }
         }
     }
@@ -183,5 +191,7 @@ class PostsViewModel @Inject constructor(
             // Pinned posts always float to top, preserving sub-order among pinned
             val (pinned, unpinned) = sorted.partition { it.filePath in state.pinnedFilePaths }
             pinned + unpinned
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        }
+        .flowOn(Dispatchers.Default)  // filter/sort off the UI thread
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 }

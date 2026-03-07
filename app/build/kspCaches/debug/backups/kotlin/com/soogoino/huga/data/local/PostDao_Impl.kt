@@ -34,7 +34,7 @@ public class PostDao_Impl(
     this.__upsertAdapterOfPostEntity = EntityUpsertAdapter<PostEntity>(object :
         EntityInsertAdapter<PostEntity>() {
       protected override fun createQuery(): String =
-          "INSERT INTO `posts` (`filePath`,`relativePath`,`slug`,`title`,`date`,`draft`,`tags`,`categories`,`description`,`lastModified`) VALUES (?,?,?,?,?,?,?,?,?,?)"
+          "INSERT INTO `posts` (`filePath`,`relativePath`,`slug`,`title`,`date`,`draft`,`tags`,`categories`,`description`,`lastModified`,`wordCount`) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
 
       protected override fun bind(statement: SQLiteStatement, entity: PostEntity) {
         statement.bindText(1, entity.filePath)
@@ -48,10 +48,11 @@ public class PostDao_Impl(
         statement.bindText(8, entity.categories)
         statement.bindText(9, entity.description)
         statement.bindLong(10, entity.lastModified)
+        statement.bindLong(11, entity.wordCount.toLong())
       }
     }, object : EntityDeleteOrUpdateAdapter<PostEntity>() {
       protected override fun createQuery(): String =
-          "UPDATE `posts` SET `filePath` = ?,`relativePath` = ?,`slug` = ?,`title` = ?,`date` = ?,`draft` = ?,`tags` = ?,`categories` = ?,`description` = ?,`lastModified` = ? WHERE `filePath` = ?"
+          "UPDATE `posts` SET `filePath` = ?,`relativePath` = ?,`slug` = ?,`title` = ?,`date` = ?,`draft` = ?,`tags` = ?,`categories` = ?,`description` = ?,`lastModified` = ?,`wordCount` = ? WHERE `filePath` = ?"
 
       protected override fun bind(statement: SQLiteStatement, entity: PostEntity) {
         statement.bindText(1, entity.filePath)
@@ -65,7 +66,8 @@ public class PostDao_Impl(
         statement.bindText(8, entity.categories)
         statement.bindText(9, entity.description)
         statement.bindLong(10, entity.lastModified)
-        statement.bindText(11, entity.filePath)
+        statement.bindLong(11, entity.wordCount.toLong())
+        statement.bindText(12, entity.filePath)
       }
     })
   }
@@ -95,6 +97,7 @@ public class PostDao_Impl(
         val _columnIndexOfCategories: Int = getColumnIndexOrThrow(_stmt, "categories")
         val _columnIndexOfDescription: Int = getColumnIndexOrThrow(_stmt, "description")
         val _columnIndexOfLastModified: Int = getColumnIndexOrThrow(_stmt, "lastModified")
+        val _columnIndexOfWordCount: Int = getColumnIndexOrThrow(_stmt, "wordCount")
         val _result: MutableList<PostEntity> = mutableListOf()
         while (_stmt.step()) {
           val _item: PostEntity
@@ -120,8 +123,10 @@ public class PostDao_Impl(
           _tmpDescription = _stmt.getText(_columnIndexOfDescription)
           val _tmpLastModified: Long
           _tmpLastModified = _stmt.getLong(_columnIndexOfLastModified)
+          val _tmpWordCount: Int
+          _tmpWordCount = _stmt.getLong(_columnIndexOfWordCount).toInt()
           _item =
-              PostEntity(_tmpFilePath,_tmpRelativePath,_tmpSlug,_tmpTitle,_tmpDate,_tmpDraft,_tmpTags,_tmpCategories,_tmpDescription,_tmpLastModified)
+              PostEntity(_tmpFilePath,_tmpRelativePath,_tmpSlug,_tmpTitle,_tmpDate,_tmpDraft,_tmpTags,_tmpCategories,_tmpDescription,_tmpLastModified,_tmpWordCount)
           _result.add(_item)
         }
         _result
@@ -146,6 +151,7 @@ public class PostDao_Impl(
         val _columnIndexOfCategories: Int = getColumnIndexOrThrow(_stmt, "categories")
         val _columnIndexOfDescription: Int = getColumnIndexOrThrow(_stmt, "description")
         val _columnIndexOfLastModified: Int = getColumnIndexOrThrow(_stmt, "lastModified")
+        val _columnIndexOfWordCount: Int = getColumnIndexOrThrow(_stmt, "wordCount")
         val _result: MutableList<PostEntity> = mutableListOf()
         while (_stmt.step()) {
           val _item: PostEntity
@@ -171,8 +177,10 @@ public class PostDao_Impl(
           _tmpDescription = _stmt.getText(_columnIndexOfDescription)
           val _tmpLastModified: Long
           _tmpLastModified = _stmt.getLong(_columnIndexOfLastModified)
+          val _tmpWordCount: Int
+          _tmpWordCount = _stmt.getLong(_columnIndexOfWordCount).toInt()
           _item =
-              PostEntity(_tmpFilePath,_tmpRelativePath,_tmpSlug,_tmpTitle,_tmpDate,_tmpDraft,_tmpTags,_tmpCategories,_tmpDescription,_tmpLastModified)
+              PostEntity(_tmpFilePath,_tmpRelativePath,_tmpSlug,_tmpTitle,_tmpDate,_tmpDraft,_tmpTags,_tmpCategories,_tmpDescription,_tmpLastModified,_tmpWordCount)
           _result.add(_item)
         }
         _result
@@ -199,6 +207,7 @@ public class PostDao_Impl(
         val _columnIndexOfCategories: Int = getColumnIndexOrThrow(_stmt, "categories")
         val _columnIndexOfDescription: Int = getColumnIndexOrThrow(_stmt, "description")
         val _columnIndexOfLastModified: Int = getColumnIndexOrThrow(_stmt, "lastModified")
+        val _columnIndexOfWordCount: Int = getColumnIndexOrThrow(_stmt, "wordCount")
         val _result: PostEntity?
         if (_stmt.step()) {
           val _tmpFilePath: String
@@ -223,8 +232,10 @@ public class PostDao_Impl(
           _tmpDescription = _stmt.getText(_columnIndexOfDescription)
           val _tmpLastModified: Long
           _tmpLastModified = _stmt.getLong(_columnIndexOfLastModified)
+          val _tmpWordCount: Int
+          _tmpWordCount = _stmt.getLong(_columnIndexOfWordCount).toInt()
           _result =
-              PostEntity(_tmpFilePath,_tmpRelativePath,_tmpSlug,_tmpTitle,_tmpDate,_tmpDraft,_tmpTags,_tmpCategories,_tmpDescription,_tmpLastModified)
+              PostEntity(_tmpFilePath,_tmpRelativePath,_tmpSlug,_tmpTitle,_tmpDate,_tmpDraft,_tmpTags,_tmpCategories,_tmpDescription,_tmpLastModified,_tmpWordCount)
         } else {
           _result = null
         }

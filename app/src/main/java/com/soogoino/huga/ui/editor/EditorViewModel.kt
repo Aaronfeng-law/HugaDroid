@@ -214,7 +214,8 @@ class EditorViewModel @Inject constructor(
 
                 val destFile = when (settings.mediaStrategy) {
                     MediaStrategy.PAGE_BUNDLE -> {
-                        val bundleDir = File(post.filePath).parentFile!!
+                        val bundleDir = File(post.filePath).parentFile
+                            ?: return@runCatching  // STB-02: graceful null guard
                         File(bundleDir, safeFilename)
                     }
                     MediaStrategy.STATIC_FOLDER -> {
@@ -260,7 +261,8 @@ class EditorViewModel @Inject constructor(
     }
 
     private fun compressImage(uri: Uri): ByteArray {
-        val inputStream = context.contentResolver.openInputStream(uri)!!
+        val inputStream = context.contentResolver.openInputStream(uri)
+            ?: throw IllegalStateException("Cannot open image: URI is invalid or file was deleted")
         val bitmap = BitmapFactory.decodeStream(inputStream)
         val maxDim = 1920
         val scaled = if (bitmap.width > maxDim || bitmap.height > maxDim) {
@@ -274,6 +276,27 @@ class EditorViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        forceSave()
+        // SEC-09: Clean up camera temp files accumulated in cacheDir/camera/
+        CoroutineScope(NonCancellable + Dispatchers.IO).launch {
+            runCatching { context.cacheDir.resolve("camera").deleteRecursively() }
+        }
+        // viewModelScope is already cancelled at this point — use an independent scope
+        // so the last edit is guaranteed to be flushed to disk.
+        val saveScope = CoroutineScope(NonCancellable + Dispatchers.IO)
+        val s = _uiState.value
+        val orig = s.post ?: return
+        if (filePath.isNotBlank()) {
+            saveScope.launch {
+                runCatching {
+                    savePostUseCase(
+                        orig.copy(
+                            frontMatter = s.frontMatter,
+                            frontMatterFormat = s.frontMatterFormat,
+                            bodyMarkdown = s.bodyText,
+                        )
+                    )
+                }
+            }
+        }
     }
 }

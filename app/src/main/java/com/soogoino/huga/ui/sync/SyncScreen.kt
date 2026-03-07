@@ -229,14 +229,25 @@ private fun CommitMessageDialog(onDismiss: () -> Unit, onConfirm: (String) -> Un
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.commit_and_push)) },
         text = {
-            OutlinedTextField(
-                value = message,
-                onValueChange = { message = it },
-                label = { Text(stringResource(R.string.message)) },
-                placeholder = { Text(stringResource(R.string.commit_message_placeholder)) },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-            )
+            Column {
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = { message = it },
+                    label = { Text(stringResource(R.string.message)) },
+                    placeholder = { Text(stringResource(R.string.commit_message_placeholder)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                )
+                // ROB-14: inform user what will be used when left blank
+                if (message.isBlank()) {
+                    Text(
+                        text = stringResource(R.string.commit_message_auto_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+            }
         },
         confirmButton = {
             Button(onClick = { onConfirm(message.ifBlank { autoCommitText }) }) {
