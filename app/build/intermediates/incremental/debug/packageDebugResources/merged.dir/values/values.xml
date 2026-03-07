@@ -40,6 +40,7 @@
     <string name="date_iso_label">Date (ISO-8601)</string>
     <string name="date_iso_placeholder">e.g. 2026-03-06T12:00:00+08:00</string>
     <string name="delete">Delete</string>
+    <string name="delete_file_confirmation">Delete \"%s\"? This cannot be undone.</string>
     <string name="delete_post_confirmation">Delete \"%s\"? This cannot be undone.</string>
     <string name="delete_post_title">Delete Post</string>
     <string name="description">Description</string>
@@ -55,7 +56,11 @@
     <string name="editor_tab_front_matter">Front Matter</string>
     <string name="editor_tab_preview">Preview</string>
     <string name="email">Email</string>
+    <string name="empty_folder">This folder is empty</string>
     <string name="expand">Expand</string>
+    <string name="file_name_md">File name (without .md)</string>
+    <string name="files">Files</string>
+    <string name="folder_name">Folder name</string>
     <string name="generate_key_pair">Generate Ed25519 Key Pair</string>
     <string name="generate_ssh_key">Generate SSH Key</string>
     <string name="git_sync">Git Sync</string>
@@ -75,6 +80,8 @@
     <string name="min_interval">15 min</string>
     <string name="more_options">More</string>
     <string name="name">Name</string>
+    <string name="new_file_md">New Markdown File</string>
+    <string name="new_folder">New Folder</string>
     <string name="new_post">New Post</string>
     <string name="new_post_slug_hint">Enter a URL-safe slug (e.g. my-first-post)</string>
     <string name="newest_first">Newest First</string>
@@ -97,6 +104,8 @@
     <string name="push">Push</string>
     <string name="recent_commits">Recent Commits</string>
     <string name="remove">Remove</string>
+    <string name="rename">Rename</string>
+    <string name="rename_to">New name</string>
     <string name="repo_local_display">Local: %s</string>
     <string name="repo_url_display">URL: %s</string>
     <string name="repository">Repository</string>

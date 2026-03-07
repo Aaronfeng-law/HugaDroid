@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.soogoino.huga.ui.editor.EditorScreen
+import com.soogoino.huga.ui.files.FilesScreen
 import com.soogoino.huga.ui.posts.PostsScreen
 import com.soogoino.huga.ui.settings.SettingsScreen
 import com.soogoino.huga.ui.sync.SetupScreen
@@ -21,6 +22,7 @@ sealed class Screen(val route: String) {
         fun createRoute(filePath: String): String =
             "editor/${URLEncoder.encode(filePath, "UTF-8")}"
     }
+    object Files : Screen("files")
     object Sync : Screen("sync")
     object Setup : Screen("setup")
     object Settings : Screen("settings")
@@ -45,8 +47,20 @@ fun HugaNavGraph(
                     navController.navigate(Screen.Editor.createRoute(filePath))
                 },
                 onNavigateToSync = { navController.navigate(Screen.Sync.route) },
+                onNavigateToFiles = { navController.navigate(Screen.Files.route) { launchSingleTop = true } },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToSetup = { navController.navigate(Screen.Setup.route) },
+            )
+        }
+
+        composable(Screen.Files.route) {
+            FilesScreen(
+                onNavigateToPosts = { navController.navigate(Screen.Posts.route) { launchSingleTop = true } },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToSetup = { navController.navigate(Screen.Setup.route) },
+                onOpenFile = { filePath ->
+                    navController.navigate(Screen.Editor.createRoute(filePath))
+                },
             )
         }
 

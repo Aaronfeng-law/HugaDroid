@@ -32,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 fun PostsScreen(
     onOpenPost: (filePath: String) -> Unit,
     onNavigateToSync: () -> Unit,
+    onNavigateToFiles: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToSetup: () -> Unit,
     viewModel: PostsViewModel = hiltViewModel(),
@@ -124,9 +125,9 @@ fun PostsScreen(
                 )
                 NavigationBarItem(
                     selected = false,
-                    onClick = { if (!uiState.isRepoSetup) onNavigateToSetup() else onNavigateToSync() },
-                    icon = { Icon(Icons.Outlined.CloudSync, contentDescription = null) },
-                    label = { Text(stringResource(R.string.sync)) },
+                    onClick = onNavigateToFiles,
+                    icon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },
+                    label = { Text(stringResource(R.string.files)) },
                 )
                 NavigationBarItem(
                     selected = false,

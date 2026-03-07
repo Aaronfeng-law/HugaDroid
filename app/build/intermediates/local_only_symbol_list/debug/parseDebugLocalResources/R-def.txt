@@ -44,6 +44,7 @@ string date
 string date_iso_label
 string date_iso_placeholder
 string delete
+string delete_file_confirmation
 string delete_post_confirmation
 string delete_post_title
 string description
@@ -59,7 +60,11 @@ string editor_tab_content
 string editor_tab_front_matter
 string editor_tab_preview
 string email
+string empty_folder
 string expand
+string file_name_md
+string files
+string folder_name
 string generate_key_pair
 string generate_ssh_key
 string git_sync
@@ -79,6 +84,8 @@ string message
 string min_interval
 string more_options
 string name
+string new_file_md
+string new_folder
 string new_post
 string new_post_slug_hint
 string newest_first
@@ -101,6 +108,8 @@ string pull
 string push
 string recent_commits
 string remove
+string rename
+string rename_to
 string repo_local_display
 string repo_url_display
 string repository

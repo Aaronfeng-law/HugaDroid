@@ -168,4 +168,16 @@
     <string name="edit_front_matter">Edit Front Matter</string>
     <string name="source_mode">Source</string>
     <string name="preview_mode">Preview</string>
+
+    <!-- ── File Browser ──────────────────────────────────────────── -->
+    <string name="files">Files</string>
+    <string name="new_folder">New Folder</string>
+    <string name="new_file_md">New Markdown File</string>
+    <string name="folder_name">Folder name</string>
+    <string name="file_name_md">File name (without .md)</string>
+    <string name="rename">Rename</string>
+    <string name="rename_to">New name</string>
+    <string name="empty_folder">This folder is empty</string>
+    <!-- %s = file/folder name -->
+    <string name="delete_file_confirmation">Delete \"%s\"? This cannot be undone.</string>
 </resources>

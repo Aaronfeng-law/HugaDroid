@@ -4,6 +4,7 @@ import androidx.hilt.work.HiltWrapper_WorkerFactoryModule;
 import com.soogoino.huga.di.DatabaseModule;
 import com.soogoino.huga.di.GitModule;
 import com.soogoino.huga.ui.editor.EditorViewModel_HiltModules;
+import com.soogoino.huga.ui.files.FilesViewModel_HiltModules;
 import com.soogoino.huga.ui.posts.PostsViewModel_HiltModules;
 import com.soogoino.huga.ui.settings.SettingsViewModel_HiltModules;
 import com.soogoino.huga.ui.sync.SetupViewModel_HiltModules;
@@ -164,6 +165,7 @@ public final class HugaApplication_HiltComponents {
   @Subcomponent(
       modules = {
           EditorViewModel_HiltModules.KeyModule.class,
+          FilesViewModel_HiltModules.KeyModule.class,
           HiltWrapper_ActivityRetainedComponentManager_LifecycleModule.class,
           HiltWrapper_SavedStateHandleModule.class,
           ActivityCBuilderModule.class,
@@ -208,6 +210,7 @@ public final class HugaApplication_HiltComponents {
   @Subcomponent(
       modules = {
           EditorViewModel_HiltModules.BindsModule.class,
+          FilesViewModel_HiltModules.BindsModule.class,
           HiltWrapper_HiltViewModelFactory_ViewModelModule.class,
           PostsViewModel_HiltModules.BindsModule.class,
           SettingsViewModel_HiltModules.BindsModule.class,

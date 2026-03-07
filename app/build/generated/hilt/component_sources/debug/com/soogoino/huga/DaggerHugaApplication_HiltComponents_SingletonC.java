@@ -37,6 +37,10 @@ import com.soogoino.huga.ui.editor.EditorViewModel;
 import com.soogoino.huga.ui.editor.EditorViewModel_HiltModules;
 import com.soogoino.huga.ui.editor.EditorViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
 import com.soogoino.huga.ui.editor.EditorViewModel_HiltModules_KeyModule_Provide_LazyMapKey;
+import com.soogoino.huga.ui.files.FilesViewModel;
+import com.soogoino.huga.ui.files.FilesViewModel_HiltModules;
+import com.soogoino.huga.ui.files.FilesViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
+import com.soogoino.huga.ui.files.FilesViewModel_HiltModules_KeyModule_Provide_LazyMapKey;
 import com.soogoino.huga.ui.posts.PostsViewModel;
 import com.soogoino.huga.ui.posts.PostsViewModel_HiltModules;
 import com.soogoino.huga.ui.posts.PostsViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
@@ -417,7 +421,7 @@ public final class DaggerHugaApplication_HiltComponents_SingletonC {
 
     @Override
     public Map<Class<?>, Boolean> getViewModelKeys() {
-      return LazyClassKeyMap.<Boolean>of(MapBuilder.<String, Boolean>newMapBuilder(5).put(EditorViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, EditorViewModel_HiltModules.KeyModule.provide()).put(PostsViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, PostsViewModel_HiltModules.KeyModule.provide()).put(SettingsViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, SettingsViewModel_HiltModules.KeyModule.provide()).put(SetupViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, SetupViewModel_HiltModules.KeyModule.provide()).put(SyncViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, SyncViewModel_HiltModules.KeyModule.provide()).build());
+      return LazyClassKeyMap.<Boolean>of(MapBuilder.<String, Boolean>newMapBuilder(6).put(EditorViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, EditorViewModel_HiltModules.KeyModule.provide()).put(FilesViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, FilesViewModel_HiltModules.KeyModule.provide()).put(PostsViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, PostsViewModel_HiltModules.KeyModule.provide()).put(SettingsViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, SettingsViewModel_HiltModules.KeyModule.provide()).put(SetupViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, SetupViewModel_HiltModules.KeyModule.provide()).put(SyncViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, SyncViewModel_HiltModules.KeyModule.provide()).build());
     }
 
     @Override
@@ -449,6 +453,8 @@ public final class DaggerHugaApplication_HiltComponents_SingletonC {
     private final ViewModelCImpl viewModelCImpl = this;
 
     private Provider<EditorViewModel> editorViewModelProvider;
+
+    private Provider<FilesViewModel> filesViewModelProvider;
 
     private Provider<PostsViewModel> postsViewModelProvider;
 
@@ -500,15 +506,16 @@ public final class DaggerHugaApplication_HiltComponents_SingletonC {
     private void initialize(final SavedStateHandle savedStateHandleParam,
         final ViewModelLifecycle viewModelLifecycleParam) {
       this.editorViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 0);
-      this.postsViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 1);
-      this.settingsViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 2);
-      this.setupViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 3);
-      this.syncViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 4);
+      this.filesViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 1);
+      this.postsViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 2);
+      this.settingsViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 3);
+      this.setupViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 4);
+      this.syncViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 5);
     }
 
     @Override
     public Map<Class<?>, javax.inject.Provider<ViewModel>> getHiltViewModelMap() {
-      return LazyClassKeyMap.<javax.inject.Provider<ViewModel>>of(MapBuilder.<String, javax.inject.Provider<ViewModel>>newMapBuilder(5).put(EditorViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) editorViewModelProvider)).put(PostsViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) postsViewModelProvider)).put(SettingsViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) settingsViewModelProvider)).put(SetupViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) setupViewModelProvider)).put(SyncViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) syncViewModelProvider)).build());
+      return LazyClassKeyMap.<javax.inject.Provider<ViewModel>>of(MapBuilder.<String, javax.inject.Provider<ViewModel>>newMapBuilder(6).put(EditorViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) editorViewModelProvider)).put(FilesViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) filesViewModelProvider)).put(PostsViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) postsViewModelProvider)).put(SettingsViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) settingsViewModelProvider)).put(SetupViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) setupViewModelProvider)).put(SyncViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) syncViewModelProvider)).build());
     }
 
     @Override
@@ -540,16 +547,19 @@ public final class DaggerHugaApplication_HiltComponents_SingletonC {
           case 0: // com.soogoino.huga.ui.editor.EditorViewModel 
           return (T) new EditorViewModel(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), viewModelCImpl.readPostUseCase(), viewModelCImpl.savePostUseCase(), viewModelCImpl.autoSaveUseCase(), singletonCImpl.appPreferencesProvider.get());
 
-          case 1: // com.soogoino.huga.ui.posts.PostsViewModel 
+          case 1: // com.soogoino.huga.ui.files.FilesViewModel 
+          return (T) new FilesViewModel(singletonCImpl.appPreferencesProvider.get());
+
+          case 2: // com.soogoino.huga.ui.posts.PostsViewModel 
           return (T) new PostsViewModel(viewModelCImpl.observePostsUseCase(), viewModelCImpl.scanPostsUseCase(), viewModelCImpl.createPostUseCase(), viewModelCImpl.deletePostUseCase(), singletonCImpl.syncRepoUseCase(), singletonCImpl.jGitRepositoryImplProvider.get(), singletonCImpl.appPreferencesProvider.get());
 
-          case 2: // com.soogoino.huga.ui.settings.SettingsViewModel 
+          case 3: // com.soogoino.huga.ui.settings.SettingsViewModel 
           return (T) new SettingsViewModel(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.appPreferencesProvider.get());
 
-          case 3: // com.soogoino.huga.ui.sync.SetupViewModel 
+          case 4: // com.soogoino.huga.ui.sync.SetupViewModel 
           return (T) new SetupViewModel(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.appPreferencesProvider.get(), singletonCImpl.jGitRepositoryImplProvider.get(), singletonCImpl.sshKeyManagerProvider.get(), singletonCImpl.secureTokenStoreProvider.get());
 
-          case 4: // com.soogoino.huga.ui.sync.SyncViewModel 
+          case 5: // com.soogoino.huga.ui.sync.SyncViewModel 
           return (T) new SyncViewModel(singletonCImpl.syncRepoUseCase(), viewModelCImpl.scanPostsUseCase(), singletonCImpl.jGitRepositoryImplProvider.get(), singletonCImpl.commitDao(), singletonCImpl.appPreferencesProvider.get());
 
           default: throw new AssertionError(id);

@@ -24,6 +24,8 @@ import hilt_aggregated_deps._com_soogoino_huga_di_DatabaseModule;
 import hilt_aggregated_deps._com_soogoino_huga_di_GitModule;
 import hilt_aggregated_deps._com_soogoino_huga_ui_editor_EditorViewModel_HiltModules_BindsModule;
 import hilt_aggregated_deps._com_soogoino_huga_ui_editor_EditorViewModel_HiltModules_KeyModule;
+import hilt_aggregated_deps._com_soogoino_huga_ui_files_FilesViewModel_HiltModules_BindsModule;
+import hilt_aggregated_deps._com_soogoino_huga_ui_files_FilesViewModel_HiltModules_KeyModule;
 import hilt_aggregated_deps._com_soogoino_huga_ui_posts_PostsViewModel_HiltModules_BindsModule;
 import hilt_aggregated_deps._com_soogoino_huga_ui_posts_PostsViewModel_HiltModules_KeyModule;
 import hilt_aggregated_deps._com_soogoino_huga_ui_settings_SettingsViewModel_HiltModules_BindsModule;
@@ -80,6 +82,8 @@ import hilt_aggregated_deps._dagger_hilt_android_internal_modules_HiltWrapper_Ac
         _com_soogoino_huga_di_GitModule.class,
         _com_soogoino_huga_ui_editor_EditorViewModel_HiltModules_BindsModule.class,
         _com_soogoino_huga_ui_editor_EditorViewModel_HiltModules_KeyModule.class,
+        _com_soogoino_huga_ui_files_FilesViewModel_HiltModules_BindsModule.class,
+        _com_soogoino_huga_ui_files_FilesViewModel_HiltModules_KeyModule.class,
         _com_soogoino_huga_ui_posts_PostsViewModel_HiltModules_BindsModule.class,
         _com_soogoino_huga_ui_posts_PostsViewModel_HiltModules_KeyModule.class,
         _com_soogoino_huga_ui_settings_SettingsViewModel_HiltModules_BindsModule.class,
