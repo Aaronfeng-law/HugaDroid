@@ -182,11 +182,13 @@ fun EditorScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0),
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .imePadding()
         ) {
             // Content | Front Matter | Preview tab bar
             val tabTitles = listOf(
@@ -217,49 +219,61 @@ fun EditorScreen(
                 }
             }
 
-            when {
-                uiState.isLoading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+            Box(modifier = Modifier.weight(1f)) {
+                when {
+                    uiState.isLoading -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
                     }
-                }
-                uiState.editorTab == EditorTab.CONTENT -> {
-                    SourceEditor(
-                        value = textFieldValue,
-                        onValueChange = { newVal ->
-                            textFieldValue = newVal
-                            viewModel.onBodyChanged(newVal.text)
-                            viewModel.onCursorPositionChanged(newVal.selection.start)
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-                uiState.editorTab == EditorTab.FRONT_MATTER -> {
-                    FrontMatterTab(
-                        frontMatter = uiState.frontMatter,
-                        onChanged = viewModel::onFrontMatterChanged,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-                else -> {
-                    val previewBody = remember(
-                        uiState.bodyText,
-                        uiState.post,
-                        uiState.mediaStrategy,
-                        uiState.localRepoPath,
-                    ) {
-                        resolvePreviewImagePaths(
-                            bodyText = uiState.bodyText,
-                            post = uiState.post,
-                            mediaStrategy = uiState.mediaStrategy,
-                            localRepoPath = uiState.localRepoPath,
+                    uiState.editorTab == EditorTab.CONTENT -> {
+                        SourceEditor(
+                            value = textFieldValue,
+                            onValueChange = { newVal ->
+                                textFieldValue = newVal
+                                viewModel.onBodyChanged(newVal.text)
+                                viewModel.onCursorPositionChanged(newVal.selection.start)
+                            },
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
-                    PreviewPane(
-                        markdown = previewBody,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    uiState.editorTab == EditorTab.FRONT_MATTER -> {
+                        FrontMatterTab(
+                            frontMatter = uiState.frontMatter,
+                            onChanged = viewModel::onFrontMatterChanged,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    else -> {
+                        val previewBody = remember(
+                            uiState.bodyText,
+                            uiState.post,
+                            uiState.mediaStrategy,
+                            uiState.localRepoPath,
+                        ) {
+                            resolvePreviewImagePaths(
+                                bodyText = uiState.bodyText,
+                                post = uiState.post,
+                                mediaStrategy = uiState.mediaStrategy,
+                                localRepoPath = uiState.localRepoPath,
+                            )
+                        }
+                        PreviewPane(
+                            markdown = previewBody,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 }
+            }
+
+            // Markdown formatting toolbar — visible only in Content tab, floats above keyboard
+            if (uiState.editorTab == EditorTab.CONTENT && !uiState.isLoading) {
+                MarkdownToolbar(
+                    onAction = { action ->
+                        textFieldValue = applyMarkdownAction(action, textFieldValue)
+                        viewModel.onBodyChanged(textFieldValue.text)
+                    },
+                )
             }
         }
     }

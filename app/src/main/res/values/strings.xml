@@ -33,6 +33,18 @@
     <!-- %d = estimated minutes -->
     <string name="min_read">%d min read</string>
 
+    <!-- ── Markdown Toolbar ─────────────────────────────────────── -->
+    <string name="fmt_bold">Bold</string>
+    <string name="fmt_italic">Italic</string>
+    <string name="fmt_strikethrough">Strikethrough</string>
+    <string name="fmt_inline_code">Inline code</string>
+    <string name="fmt_heading">Heading (cycle H1–H3)</string>
+    <string name="fmt_bullet_list">Bullet list</string>
+    <string name="fmt_number_list">Numbered list</string>
+    <string name="fmt_block_quote">Block quote</string>
+    <string name="fmt_link">Link</string>
+    <string name="fmt_hr">Horizontal rule</string>
+
     <!-- ── Editor ────────────────────────────────────────────────── -->
     <string name="untitled">Untitled</string>
     <string name="saved">Saved</string>

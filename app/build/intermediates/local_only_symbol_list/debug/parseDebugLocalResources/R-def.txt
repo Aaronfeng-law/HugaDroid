@@ -76,6 +76,16 @@ string empty_folder
 string expand
 string file_name_md
 string files
+string fmt_block_quote
+string fmt_bold
+string fmt_bullet_list
+string fmt_heading
+string fmt_hr
+string fmt_inline_code
+string fmt_italic
+string fmt_link
+string fmt_number_list
+string fmt_strikethrough
 string folder_name
 string generate_key_pair
 string generate_ssh_key

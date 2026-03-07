@@ -72,6 +72,16 @@
     <string name="expand">Expand</string>
     <string name="file_name_md">File name (without .md)</string>
     <string name="files">Files</string>
+    <string name="fmt_block_quote">Block quote</string>
+    <string name="fmt_bold">Bold</string>
+    <string name="fmt_bullet_list">Bullet list</string>
+    <string name="fmt_heading">Heading (cycle H1–H3)</string>
+    <string name="fmt_hr">Horizontal rule</string>
+    <string name="fmt_inline_code">Inline code</string>
+    <string name="fmt_italic">Italic</string>
+    <string name="fmt_link">Link</string>
+    <string name="fmt_number_list">Numbered list</string>
+    <string name="fmt_strikethrough">Strikethrough</string>
     <string name="folder_name">Folder name</string>
     <string name="generate_key_pair">Generate Ed25519 Key Pair</string>
     <string name="generate_ssh_key">Generate SSH Key</string>
