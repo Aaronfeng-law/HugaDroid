@@ -39,6 +39,15 @@ sealed class PostsEvent {
     data class NavigateToEditor(val filePath: String) : PostsEvent()
 }
 
+/** Projection used to gate filteredPosts recomputation — excludes sync/loading fields. */
+private data class FilterKey(
+    val posts: List<HugoPost>,
+    val filterOnlyDraft: Boolean,
+    val searchQuery: String,
+    val sortOrder: SortOrder,
+    val pinnedFilePaths: Set<String>,
+)
+
 @HiltViewModel
 class PostsViewModel @Inject constructor(
     private val observePostsUseCase: ObservePostsUseCase,
@@ -172,26 +181,31 @@ class PostsViewModel @Inject constructor(
     }
 
     val filteredPosts: StateFlow<List<HugoPost>> =
-        _uiState.map { state ->
-            var list = if (state.filterOnlyDraft) state.posts.filter { it.frontMatter.draft }
-                       else state.posts
-            if (state.searchQuery.isNotBlank()) {
-                val q = state.searchQuery.lowercase()
-                list = list.filter { post ->
-                    post.frontMatter.title.lowercase().contains(q) ||
-                    post.frontMatter.description.lowercase().contains(q) ||
-                    post.frontMatter.tags.any { it.lowercase().contains(q) }
+        _uiState
+            // Only recompute when filter-relevant fields actually change.
+            // This prevents syncProgress / isSyncing / aheadCount updates from
+            // triggering an expensive list rebuild on the Default dispatcher.
+            .map { s -> FilterKey(s.posts, s.filterOnlyDraft, s.searchQuery, s.sortOrder, s.pinnedFilePaths) }
+            .distinctUntilChanged()
+            .map { key ->
+                var list = if (key.filterOnlyDraft) key.posts.filter { it.frontMatter.draft }
+                           else key.posts
+                if (key.searchQuery.isNotBlank()) {
+                    val q = key.searchQuery.lowercase()
+                    list = list.filter { post ->
+                        post.frontMatter.title.lowercase().contains(q) ||
+                        post.frontMatter.description.lowercase().contains(q) ||
+                        post.frontMatter.tags.any { it.lowercase().contains(q) }
+                    }
                 }
+                val sorted = when (key.sortOrder) {
+                    SortOrder.DATE_DESC -> list.sortedByDescending { it.frontMatter.date }
+                    SortOrder.DATE_ASC  -> list.sortedBy { it.frontMatter.date }
+                    SortOrder.TITLE_ASC -> list.sortedBy { it.frontMatter.title.lowercase() }
+                }
+                val (pinned, unpinned) = sorted.partition { it.filePath in key.pinnedFilePaths }
+                pinned + unpinned
             }
-            val sorted = when (state.sortOrder) {
-                SortOrder.DATE_DESC -> list.sortedByDescending { it.frontMatter.date }
-                SortOrder.DATE_ASC  -> list.sortedBy { it.frontMatter.date }
-                SortOrder.TITLE_ASC -> list.sortedBy { it.frontMatter.title.lowercase() }
-            }
-            // Pinned posts always float to top, preserving sub-order among pinned
-            val (pinned, unpinned) = sorted.partition { it.filePath in state.pinnedFilePaths }
-            pinned + unpinned
-        }
-        .flowOn(Dispatchers.Default)  // filter/sort off the UI thread
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+            .flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 }

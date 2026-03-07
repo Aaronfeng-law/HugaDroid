@@ -109,6 +109,50 @@ fun SyncScreen(
                                 Text(stringResource(R.string.commit_and_push))
                             }
                         }
+                        // Status-loading indicator: shown while git status is scanned in background.
+                        // Explains why the Commit & Push button is gray before the check completes.
+                        AnimatedVisibility(uiState.isLoadingStatus && !uiState.isSyncing) {
+                            Row(
+                                modifier = Modifier.padding(top = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(12.dp),
+                                    strokeWidth = 1.5.dp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    stringResource(R.string.checking_status),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // "No local changes" — only shown once status check is done and list is empty
+            if (!uiState.isLoadingStatus && !uiState.isSyncing &&
+                uiState.pendingChanges.isEmpty() && uiState.isRepoSetup
+            ) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.CheckCircle, null,
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Text(
+                            stringResource(R.string.no_local_changes),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
                     }
                 }
             }

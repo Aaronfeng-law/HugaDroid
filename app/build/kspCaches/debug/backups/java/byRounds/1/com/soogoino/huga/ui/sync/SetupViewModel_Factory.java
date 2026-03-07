@@ -3,6 +3,7 @@ package com.soogoino.huga.ui.sync;
 import android.content.Context;
 import com.soogoino.huga.data.prefs.AppPreferences;
 import com.soogoino.huga.data.repository.SecureTokenStore;
+import com.soogoino.huga.domain.ScanPostsUseCase;
 import com.soogoino.huga.git.GitRepository;
 import com.soogoino.huga.git.SshKeyManager;
 import dagger.internal.DaggerGenerated;
@@ -40,39 +41,46 @@ public final class SetupViewModel_Factory implements Factory<SetupViewModel> {
 
   private final Provider<SecureTokenStore> secureTokenStoreProvider;
 
+  private final Provider<ScanPostsUseCase> scanPostsUseCaseProvider;
+
   public SetupViewModel_Factory(Provider<Context> contextProvider,
       Provider<AppPreferences> prefsProvider, Provider<GitRepository> gitRepositoryProvider,
       Provider<SshKeyManager> sshKeyManagerProvider,
-      Provider<SecureTokenStore> secureTokenStoreProvider) {
+      Provider<SecureTokenStore> secureTokenStoreProvider,
+      Provider<ScanPostsUseCase> scanPostsUseCaseProvider) {
     this.contextProvider = contextProvider;
     this.prefsProvider = prefsProvider;
     this.gitRepositoryProvider = gitRepositoryProvider;
     this.sshKeyManagerProvider = sshKeyManagerProvider;
     this.secureTokenStoreProvider = secureTokenStoreProvider;
+    this.scanPostsUseCaseProvider = scanPostsUseCaseProvider;
   }
 
   @Override
   public SetupViewModel get() {
-    return newInstance(contextProvider.get(), prefsProvider.get(), gitRepositoryProvider.get(), sshKeyManagerProvider.get(), secureTokenStoreProvider.get());
+    return newInstance(contextProvider.get(), prefsProvider.get(), gitRepositoryProvider.get(), sshKeyManagerProvider.get(), secureTokenStoreProvider.get(), scanPostsUseCaseProvider.get());
   }
 
   public static SetupViewModel_Factory create(javax.inject.Provider<Context> contextProvider,
       javax.inject.Provider<AppPreferences> prefsProvider,
       javax.inject.Provider<GitRepository> gitRepositoryProvider,
       javax.inject.Provider<SshKeyManager> sshKeyManagerProvider,
-      javax.inject.Provider<SecureTokenStore> secureTokenStoreProvider) {
-    return new SetupViewModel_Factory(Providers.asDaggerProvider(contextProvider), Providers.asDaggerProvider(prefsProvider), Providers.asDaggerProvider(gitRepositoryProvider), Providers.asDaggerProvider(sshKeyManagerProvider), Providers.asDaggerProvider(secureTokenStoreProvider));
+      javax.inject.Provider<SecureTokenStore> secureTokenStoreProvider,
+      javax.inject.Provider<ScanPostsUseCase> scanPostsUseCaseProvider) {
+    return new SetupViewModel_Factory(Providers.asDaggerProvider(contextProvider), Providers.asDaggerProvider(prefsProvider), Providers.asDaggerProvider(gitRepositoryProvider), Providers.asDaggerProvider(sshKeyManagerProvider), Providers.asDaggerProvider(secureTokenStoreProvider), Providers.asDaggerProvider(scanPostsUseCaseProvider));
   }
 
   public static SetupViewModel_Factory create(Provider<Context> contextProvider,
       Provider<AppPreferences> prefsProvider, Provider<GitRepository> gitRepositoryProvider,
       Provider<SshKeyManager> sshKeyManagerProvider,
-      Provider<SecureTokenStore> secureTokenStoreProvider) {
-    return new SetupViewModel_Factory(contextProvider, prefsProvider, gitRepositoryProvider, sshKeyManagerProvider, secureTokenStoreProvider);
+      Provider<SecureTokenStore> secureTokenStoreProvider,
+      Provider<ScanPostsUseCase> scanPostsUseCaseProvider) {
+    return new SetupViewModel_Factory(contextProvider, prefsProvider, gitRepositoryProvider, sshKeyManagerProvider, secureTokenStoreProvider, scanPostsUseCaseProvider);
   }
 
   public static SetupViewModel newInstance(Context context, AppPreferences prefs,
-      GitRepository gitRepository, SshKeyManager sshKeyManager, SecureTokenStore secureTokenStore) {
-    return new SetupViewModel(context, prefs, gitRepository, sshKeyManager, secureTokenStore);
+      GitRepository gitRepository, SshKeyManager sshKeyManager, SecureTokenStore secureTokenStore,
+      ScanPostsUseCase scanPostsUseCase) {
+    return new SetupViewModel(context, prefs, gitRepository, sshKeyManager, secureTokenStore, scanPostsUseCase);
   }
 }

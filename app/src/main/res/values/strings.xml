@@ -28,6 +28,7 @@
     <string name="unique_tags">Unique Tags</string>
     <string name="unique_categories">Categories</string>
     <string name="total_words">Total Words</string>
+    <string name="taxonomy">Taxonomy</string>
     <string name="recent_posts">Recent Posts</string>
     <string name="pin">Pin</string>
     <string name="unpin">Unpin</string>
@@ -134,6 +135,8 @@
     <string name="scroll_to_top">Scroll to top</string>
     <!-- %d = count -->
     <string name="pending_changes">%d pending change(s)</string>
+    <string name="checking_status">Checking for changes…</string>
+    <string name="no_local_changes">No local changes</string>
     <!-- %d = overflow count -->
     <string name="and_more">…and %d more</string>
     <!-- %d = count -->

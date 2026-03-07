@@ -1,9 +1,12 @@
 package com.soogoino.huga.data.model
 
+import androidx.compose.runtime.Immutable
+
 /**
  * Represents the parsed front matter + body of a Hugo post.
  * Supports both YAML (---) and TOML (+++) delimiters.
  */
+@Immutable
 data class HugoFrontMatter(
     val title: String = "",
     val date: String = "",          // ISO-8601 e.g. "2026-03-06T12:00:00+08:00"
@@ -23,6 +26,7 @@ enum class FrontMatterFormat { YAML, TOML }
 /**
  * Domain representation of a Hugo post file on disk.
  */
+@Immutable
 data class HugoPost(
     /** Absolute path to the file (either index.md or a flat .md file). */
     val filePath: String,

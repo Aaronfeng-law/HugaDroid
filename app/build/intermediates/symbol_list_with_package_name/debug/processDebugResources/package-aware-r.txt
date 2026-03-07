@@ -239,6 +239,7 @@ string call_notification_ongoing_text
 string call_notification_screening_text
 string cancel
 string categories
+string checking_status
 string clear_selection
 string clone_repository
 string cloning
@@ -401,6 +402,7 @@ string new_post
 string new_post_slug_hint
 string newest_first
 string no_drafts
+string no_local_changes
 string no_posts_yet
 string no_repo_configured
 string not_selected
@@ -473,6 +475,7 @@ string sync_success
 string tab
 string tags
 string take_photo
+string taxonomy
 string template_percent
 string theme_dark
 string theme_light

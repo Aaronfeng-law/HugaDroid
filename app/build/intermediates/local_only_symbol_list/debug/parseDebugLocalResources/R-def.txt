@@ -25,6 +25,7 @@ string back
 string background_sync
 string cancel
 string categories
+string checking_status
 string clear_selection
 string clone_repository
 string cloning
@@ -121,6 +122,7 @@ string new_post
 string new_post_slug_hint
 string newest_first
 string no_drafts
+string no_local_changes
 string no_posts_yet
 string no_repo_configured
 string now
@@ -182,6 +184,7 @@ string sync_interval
 string sync_success
 string tags
 string take_photo
+string taxonomy
 string theme_dark
 string theme_light
 string theme_mode

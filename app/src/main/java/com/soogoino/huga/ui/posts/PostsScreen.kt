@@ -1,12 +1,17 @@
 package com.soogoino.huga.ui.posts
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -14,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -44,6 +50,9 @@ fun PostsScreen(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val showScrollToTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
+    // Isolate pinnedFilePaths so that changes to unrelated uiState fields
+    // (aheadCount, isSyncing, …) don't cause all PostCards to recompose.
+    val pinnedFilePaths by remember { derivedStateOf { uiState.pinnedFilePaths } }
 
     var showNewPostDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<HugoPost?>(null) }
@@ -186,21 +195,20 @@ fun PostsScreen(
             }
 
             // Filter chips row
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                item {
-                    FilterChip(
-                        selected = uiState.filterOnlyDraft,
-                        onClick = viewModel::toggleDraftFilter,
-                        label = { Text(stringResource(R.string.drafts_only)) },
-                        leadingIcon = if (uiState.filterOnlyDraft) {
-                            { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
-                        } else null,
-                    )
-                }
+                FilterChip(
+                    selected = uiState.filterOnlyDraft,
+                    onClick = viewModel::toggleDraftFilter,
+                    label = { Text(stringResource(R.string.drafts_only)) },
+                    leadingIcon = if (uiState.filterOnlyDraft) {
+                        { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                    } else null,
+                )
             }
 
             // Post list
@@ -223,10 +231,14 @@ fun PostsScreen(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        items(posts, key = { it.filePath }) { post ->
+                        items(
+                            items = posts,
+                            key = { it.filePath },
+                            contentType = { "post" },
+                        ) { post ->
                             PostCard(
                                 post = post,
-                                isPinned = post.filePath in uiState.pinnedFilePaths,
+                                isPinned = post.filePath in pinnedFilePaths,
                                 onClick = { onOpenPost(post.filePath) },
                                 onDelete = { showDeleteDialog = post },
                                 onTogglePin = { viewModel.togglePin(post.filePath) },
@@ -279,19 +291,24 @@ private fun PostCard(
     onDelete: () -> Unit,
     onTogglePin: () -> Unit,
 ) {
-    var showMenu by remember { mutableStateOf(false) }
+    // Compute card appearance values (composable fns handle their own memoization)
+    val isDraft = post.frontMatter.draft
+    val cardColors = CardDefaults.cardColors(
+        containerColor = if (isDraft) MaterialTheme.colorScheme.surfaceVariant
+                         else MaterialTheme.colorScheme.surface
+    )
+    val cardElevation = CardDefaults.cardElevation(
+        defaultElevation = if (isPinned) 3.dp else 1.dp
+    )
+    // Only allocate border & color object when actually pinned
+    val cardBorder = if (isPinned) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)) else null
 
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (post.frontMatter.draft)
-                MaterialTheme.colorScheme.surfaceVariant
-            else
-                MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isPinned) 3.dp else 1.dp),
-        border = if (isPinned) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)) else null,
+        colors = cardColors,
+        elevation = cardElevation,
+        border = cardBorder,
     ) {
         Row(
             modifier = Modifier
@@ -310,11 +327,22 @@ private fun PostCard(
                         )
                     }
                     if (post.frontMatter.draft) {
-                        SuggestionChip(
-                            onClick = {},
-                            label = { Text(stringResource(R.string.draft_chip), style = MaterialTheme.typography.labelSmall) },
-                            modifier = Modifier.padding(end = 8.dp).height(24.dp),
-                        )
+                        // Lightweight badge — avoids SuggestionChip's deep composable tree
+                        Box(
+                            modifier = Modifier
+                                .padding(end = 6.dp)
+                                .height(20.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.errorContainer)
+                                .padding(horizontal = 6.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.draft_chip),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                            )
+                        }
                     }
                     Text(
                         text = post.frontMatter.title.ifBlank { post.slug },
@@ -337,15 +365,27 @@ private fun PostCard(
 
                 Spacer(Modifier.height(8.dp))
 
-                // Tags
+                // Tags — lightweight Box+Text badges (AssistChip has ~12 composable layers each)
                 if (post.frontMatter.tags.isNotEmpty()) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(post.frontMatter.tags.take(4)) { tag ->
-                            AssistChip(
-                                onClick = {},
-                                label = { Text(tag, style = MaterialTheme.typography.labelSmall) },
-                                modifier = Modifier.height(24.dp),
-                            )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        post.frontMatter.tags.take(4).forEach { tag ->
+                            Box(
+                                modifier = Modifier
+                                    .height(22.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                                    .padding(horizontal = 7.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = tag,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
+                            }
                         }
                     }
                     Spacer(Modifier.height(6.dp))
@@ -356,10 +396,11 @@ private fun PostCard(
                     val minRead = remember(post.wordCount) {
                         (post.wordCount / 200.0).coerceAtLeast(1.0).toInt()
                     }
+                    val dateFormatted = remember(post.frontMatter.date) { formatDate(post.frontMatter.date) }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (post.frontMatter.date.isNotBlank()) {
                             Text(
-                                text = formatDate(post.frontMatter.date),
+                                text = dateFormatted,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline,
                             )
@@ -375,33 +416,50 @@ private fun PostCard(
                 }
             }
 
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.more_options))
-                }
-                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.edit)) },
-                        onClick = { showMenu = false; onClick() },
-                        leadingIcon = { Icon(Icons.Outlined.Edit, null) },
+            PostCardMenu(
+                isPinned = isPinned,
+                onEdit = onClick,
+                onTogglePin = onTogglePin,
+                onDelete = onDelete,
+            )
+        }
+    }
+}
+
+/** Isolated composable so opening/closing the menu only recomposes this subtree, not the full card. */
+@Composable
+private fun PostCardMenu(
+    isPinned: Boolean,
+    onEdit: () -> Unit,
+    onTogglePin: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { showMenu = true }) {
+            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.more_options))
+        }
+        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.edit)) },
+                onClick = { showMenu = false; onEdit() },
+                leadingIcon = { Icon(Icons.Outlined.Edit, null) },
+            )
+            DropdownMenuItem(
+                text = { Text(if (isPinned) stringResource(R.string.unpin) else stringResource(R.string.pin)) },
+                onClick = { showMenu = false; onTogglePin() },
+                leadingIcon = {
+                    Icon(
+                        if (isPinned) Icons.Outlined.PushPin else Icons.Filled.PushPin,
+                        null,
                     )
-                    DropdownMenuItem(
-                        text = { Text(if (isPinned) stringResource(R.string.unpin) else stringResource(R.string.pin)) },
-                        onClick = { showMenu = false; onTogglePin() },
-                        leadingIcon = {
-                            Icon(
-                                if (isPinned) Icons.Outlined.PushPin else Icons.Filled.PushPin,
-                                null,
-                            )
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
-                        onClick = { showMenu = false; onDelete() },
-                        leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error) },
-                    )
-                }
-            }
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
+                onClick = { showMenu = false; onDelete() },
+                leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error) },
+            )
         }
     }
 }

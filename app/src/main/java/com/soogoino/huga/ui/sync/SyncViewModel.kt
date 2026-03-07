@@ -18,6 +18,9 @@ import javax.inject.Inject
 
 data class SyncUiState(
     val isSyncing: Boolean = false,
+    // true while git status/log is being scanned in background (starts true so the
+    // UI immediately shows "Checking…" rather than a misleading empty/gray state)
+    val isLoadingStatus: Boolean = true,
     val syncProgress: Int = 0,
     val syncTask: String = "",
     val commitLog: List<CommitEntry> = emptyList(),
@@ -63,15 +66,19 @@ class SyncViewModel @Inject constructor(
 
     private fun refreshStatus() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingStatus = true) }
             val settings = prefs.settings.first()
-            if (!settings.isRepoSetup || settings.localRepoPath.isBlank()) return@launch
+            if (!settings.isRepoSetup || settings.localRepoPath.isBlank()) {
+                _uiState.update { it.copy(isLoadingStatus = false) }
+                return@launch
+            }
             val path = settings.localRepoPath
             val ahead = gitRepository.aheadCount(path)
             val statusResult = gitRepository.status(path)
             val changes = if (statusResult is GitResult.Success) statusResult.data else emptyList()
-            _uiState.update { it.copy(aheadCount = ahead, pendingChanges = changes) }
+            _uiState.update { it.copy(aheadCount = ahead, pendingChanges = changes, isLoadingStatus = false) }
 
-            // Load commit log
+            // Load commit log (non-blocking — isLoadingStatus already cleared above)
             val logResult = gitRepository.log(path, 30)
             if (logResult is GitResult.Success) {
                 val entities = logResult.data.map { it.toEntity() }

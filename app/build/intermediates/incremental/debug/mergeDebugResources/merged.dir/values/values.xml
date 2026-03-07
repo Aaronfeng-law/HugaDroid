@@ -138,6 +138,7 @@
     <string name="call_notification_screening_text">Screening an incoming call</string>
     <string name="cancel">Cancel</string>
     <string name="categories">Categories</string>
+    <string name="checking_status">Checking for changes…</string>
     <string name="clear_selection">Clear selection</string>
     <string name="clone_repository">Clone Repository</string>
     <string name="cloning">Cloning…</string>
@@ -304,6 +305,7 @@
     <string name="new_post_slug_hint">Enter a URL-safe slug (e.g. my-first-post)</string>
     <string name="newest_first">Newest First</string>
     <string name="no_drafts">No drafts — all caught up!</string>
+    <string name="no_local_changes">No local changes</string>
     <string name="no_posts_yet">No posts yet</string>
     <string name="no_repo_configured">No repository configured</string>
     <string name="not_selected">Not selected</string>
@@ -376,6 +378,7 @@
     <string name="tab">Tab</string>
     <string name="tags">Tags</string>
     <string name="take_photo">Take Photo</string>
+    <string name="taxonomy">Taxonomy</string>
     <string name="template_percent"><ns2:g id="percentage">%1$d</ns2:g> percent.</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_light">Light</string>

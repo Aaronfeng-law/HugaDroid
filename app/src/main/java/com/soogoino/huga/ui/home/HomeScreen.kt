@@ -20,10 +20,9 @@ import com.soogoino.huga.R
 import com.soogoino.huga.data.model.HugoPost
 import com.soogoino.huga.data.prefs.AppPreferences
 import com.soogoino.huga.domain.ObservePostsUseCase
+import com.soogoino.huga.domain.ScanPostsUseCase
 import com.soogoino.huga.domain.SyncRepoUseCase
 import com.soogoino.huga.git.GitRepository
-import com.soogoino.huga.ui.util.countWords
-import com.soogoino.huga.ui.util.estimatedMinRead
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -55,6 +54,7 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val observePostsUseCase: ObservePostsUseCase,
+    private val scanPostsUseCase: ScanPostsUseCase,
     private val syncRepoUseCase: SyncRepoUseCase,
     private val gitRepository: GitRepository,
     private val prefs: AppPreferences,
@@ -64,6 +64,7 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
+        // Observe setup status & ahead count
         viewModelScope.launch {
             prefs.settings.collect { s ->
                 _uiState.update { it.copy(isRepoSetup = s.isRepoSetup) }
@@ -73,6 +74,7 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
+        // Observe Room post cache and compute stats
         viewModelScope.launch {
             observePostsUseCase().collect { posts ->
                 val published = posts.filter { !it.frontMatter.draft }
@@ -83,7 +85,7 @@ class HomeViewModel @Inject constructor(
                     .size
                 val tags = posts.flatMap { it.frontMatter.tags }.toSet().size
                 val cats = posts.flatMap { it.frontMatter.categories }.toSet().size
-                val totalWords = posts.sumOf { p -> countWords(p.bodyMarkdown) }
+                val totalWords = posts.sumOf { p -> p.wordCount }  // use pre-computed value
                 val recentPosts = published
                     .sortedByDescending { p ->
                         runCatching { LocalDate.parse(p.frontMatter.date.take(10)) }.getOrNull()
@@ -101,6 +103,15 @@ class HomeViewModel @Inject constructor(
                         recentPosts = recentPosts,
                     )
                 }
+            }
+        }
+        // Startup guard: if Room is empty but repo is set up, scan now.
+        // Covers cold-start after a previous clone (without re-cloning).
+        viewModelScope.launch {
+            val s = prefs.settings.first()
+            if (s.isRepoSetup && s.localRepoPath.isNotBlank()) {
+                val hasCached = observePostsUseCase().first().isNotEmpty()
+                if (!hasCached) runCatching { scanPostsUseCase() }
             }
         }
     }
@@ -226,113 +237,131 @@ fun HomeScreen(
 private fun StatGrid(uiState: HomeUiState) {
     val totalWordsLabel = when {
         uiState.totalWords >= 1_000_000 -> "%.1fM".format(uiState.totalWords / 1_000_000f)
-        uiState.totalWords >= 1_000 -> "%.1fK".format(uiState.totalWords / 1_000f)
+        uiState.totalWords >= 1_000     -> "%.1fK".format(uiState.totalWords / 1_000f)
         else -> uiState.totalWords.toString()
     }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PostsStatCard(
-                publishedCount = uiState.publishedCount,
-                draftCount = uiState.draftCount,
-                modifier = Modifier.weight(1f),
-            )
-            StatCard(
-                label = stringResource(R.string.total_words),
-                value = totalWordsLabel,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCard(
-                label = stringResource(R.string.unique_tags),
-                value = uiState.uniqueTags.toString(),
-                modifier = Modifier.weight(1f),
-            )
-            StatCard(
-                label = stringResource(R.string.unique_categories),
-                value = uiState.uniqueCategories.toString(),
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun PostsStatCard(
-    publishedCount: Int,
-    draftCount: Int,
-    modifier: Modifier = Modifier,
-) {
+    // Single unified surface, divided into 4 equal cells by thin lines — no gap between cards.
     Card(
-        modifier = modifier,
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.posts),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Column(modifier = Modifier.weight(1f)) {
+        Column {
+            // ── Row 1: Posts  |  Tags & Categories ──────────────────────
+            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max)) {
+                // Cell 1 — Published + Draft
+                Column(
+                    modifier = Modifier.weight(1f).padding(16.dp),
+                ) {
                     Text(
-                        text = publishedCount.toString(),
+                        text = stringResource(R.string.posts),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = uiState.publishedCount.toString(),
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Text(
+                                text = stringResource(R.string.published),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = uiState.draftCount.toString(),
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.secondary,
+                            )
+                            Text(
+                                text = stringResource(R.string.drafts_count),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                VerticalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                // Cell 2 — Tags + Categories
+                Column(
+                    modifier = Modifier.weight(1f).padding(16.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.taxonomy),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = uiState.uniqueTags.toString(),
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Text(
+                                text = stringResource(R.string.unique_tags),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = uiState.uniqueCategories.toString(),
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.secondary,
+                            )
+                            Text(
+                                text = stringResource(R.string.unique_categories),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+            HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            // ── Row 2: Total Words  |  Writing Days ─────────────────────
+            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max)) {
+                // Cell 3 — Total Words
+                Column(
+                    modifier = Modifier.weight(1f).padding(16.dp),
+                ) {
+                    Text(
+                        text = totalWordsLabel,
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
+                    Spacer(Modifier.height(4.dp))
                     Text(
-                        text = stringResource(R.string.published),
-                        style = MaterialTheme.typography.labelSmall,
+                        text = stringResource(R.string.total_words),
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Column(modifier = Modifier.weight(1f)) {
+                VerticalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                // Cell 4 — Writing Days
+                Column(
+                    modifier = Modifier.weight(1f).padding(16.dp),
+                ) {
                     Text(
-                        text = draftCount.toString(),
+                        text = uiState.writingDays.toString(),
                         style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.secondary,
+                        color = MaterialTheme.colorScheme.primary,
                     )
+                    Spacer(Modifier.height(4.dp))
                     Text(
-                        text = stringResource(R.string.drafts_count),
-                        style = MaterialTheme.typography.labelSmall,
+                        text = stringResource(R.string.writing_days),
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.Start,
-        ) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
@@ -342,7 +371,7 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RecentPostCard(post: HugoPost, onClick: () -> Unit) {
-    val minRead = estimatedMinRead(post.bodyMarkdown)
+    val minRead = remember(post.wordCount) { (post.wordCount / 200.0).coerceAtLeast(1.0).toInt() }
     val dateStr = post.frontMatter.date.take(10).takeIf { it.length == 10 }?.let {
         runCatching {
             val d = LocalDate.parse(it)
@@ -414,8 +443,8 @@ private fun RecentPostCard(post: HugoPost, onClick: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DraftCard(post: HugoPost, onClick: () -> Unit) {
-    val wordCount = countWords(post.bodyMarkdown)
-    val minRead = estimatedMinRead(post.bodyMarkdown)
+    val wordCount = post.wordCount
+    val minRead = remember(post.wordCount) { (post.wordCount / 200.0).coerceAtLeast(1.0).toInt() }
     val dateStr = post.frontMatter.date.take(10).takeIf { it.length == 10 }?.let {
         runCatching {
             val d = LocalDate.parse(it)

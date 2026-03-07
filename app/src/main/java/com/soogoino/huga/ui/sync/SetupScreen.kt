@@ -28,6 +28,7 @@ import androidx.lifecycle.viewModelScope
 import com.soogoino.huga.data.prefs.AppPreferences
 import com.soogoino.huga.data.prefs.AuthType
 import com.soogoino.huga.data.repository.SecureTokenStore
+import com.soogoino.huga.domain.ScanPostsUseCase
 import com.soogoino.huga.git.GitAuth
 import com.soogoino.huga.git.GitRepository
 import com.soogoino.huga.git.GitResult
@@ -77,6 +78,7 @@ class SetupViewModel @Inject constructor(
     private val gitRepository: GitRepository,
     private val sshKeyManager: SshKeyManager,
     private val secureTokenStore: SecureTokenStore,
+    private val scanPostsUseCase: ScanPostsUseCase,
 ) : ViewModel() {
 
     private val sshDir get() = File(context.filesDir, ".ssh")
@@ -180,6 +182,8 @@ class SetupViewModel @Inject constructor(
                             isRepoSetup = true,
                         )
                     }
+                    // Pre-populate Room so Home & Posts show data immediately on first entry
+                    runCatching { scanPostsUseCase() }
                     _uiState.update { it.copy(isCloning = false, isComplete = true) }
                     _events.emit(SetupEvent.SetupComplete)
                 }
