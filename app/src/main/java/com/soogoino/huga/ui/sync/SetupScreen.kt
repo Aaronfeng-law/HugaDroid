@@ -3,6 +3,7 @@ package com.soogoino.huga.ui.sync
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -125,10 +126,13 @@ class SetupViewModel @Inject constructor(
         }
     }
 
-    /** Convert https://github.com/owner/repo → git@github.com:owner/repo.git */
+    /** Convert https://github.com/owner/repo → git@github.com:owner/repo.git
+     *  Handles trailing slashes, .git suffix, and extra path segments. */
     private fun toSshUrl(url: String): String {
-        val httpsRegex = Regex("""https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?$""")
-        val match = httpsRegex.find(url.trim()) ?: return url.trim()
+        // Normalize: strip whitespace, trailing slashes, and optional .git suffix
+        val normalized = url.trim().trimEnd('/').removeSuffix(".git")
+        val httpsRegex = Regex("""https?://github\.com/([^/]+)/([^/]+)$""")
+        val match = httpsRegex.find(normalized) ?: return url.trim()
         val (owner, repo) = match.destructured
         return "git@github.com:$owner/$repo.git"
     }
@@ -147,6 +151,7 @@ class SetupViewModel @Inject constructor(
                 AuthType.PAT -> GitAuth.Pat(username = state.patUsername, token = state.patToken)
                 AuthType.SSH -> GitAuth.SshKey(keyPath = File(sshDir, SshKeyManager.KEY_FILENAME).absolutePath)
             }
+            Log.i("SetupVM", "cloneAndSetup: authType=${state.authType}  inputUrl=${state.repoUrl}  finalUrl=$remoteUrl  auth=${auth::class.simpleName}")
 
             val result = gitRepository.clone(
                 remoteUrl = remoteUrl,

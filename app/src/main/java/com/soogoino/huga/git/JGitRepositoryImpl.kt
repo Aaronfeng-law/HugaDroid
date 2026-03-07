@@ -20,13 +20,19 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
 
     private fun transportConfigCallback(auth: GitAuth) =
         org.eclipse.jgit.api.TransportConfigCallback { transport ->
-            Log.d(TAG, "transportConfigCallback: auth=${auth::class.simpleName} transport=${transport::class.simpleName}")
+            Log.d(TAG, "transportConfigCallback: auth=${auth::class.simpleName} transport=${transport::class.qualifiedName}")
             when (auth) {
                 is GitAuth.SshKey -> {
                     Log.d(TAG, "SSH key path=${auth.keyPath} exists=${File(auth.keyPath).exists()}")
-                    val factory = JschSshSessionFactory(auth.keyPath)
-                    (transport as? SshTransport)?.sshSessionFactory = factory
-                    Log.d(TAG, "JschSshSessionFactory set on ${transport::class.simpleName}")
+                    val sshTransport = transport as? SshTransport
+                    if (sshTransport == null) {
+                        // Transport is NOT SSH — URL is likely still HTTPS; log clearly
+                        Log.e(TAG, "⚠️ SSH auth requested but transport is ${transport::class.qualifiedName} (not SshTransport). URL may not have been converted to SSH format!")
+                    } else {
+                        val factory = JschSshSessionFactory(auth.keyPath)
+                        sshTransport.sshSessionFactory = factory
+                        Log.d(TAG, "JschSshSessionFactory installed on ${transport::class.simpleName}")
+                    }
                 }
                 is GitAuth.Pat -> { /* PAT via CredentialsProvider */ }
             }
@@ -67,7 +73,21 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
         onProgress: (Int, String) -> Unit,
     ): GitResult<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            val dir = File(localPath).also { it.mkdirs() }
+            Log.i(TAG, "clone  url=$remoteUrl  auth=${auth::class.simpleName}  localPath=$localPath")
+            // Guard: SSH auth requires an SSH-style URL
+            if (auth is GitAuth.SshKey && (remoteUrl.startsWith("https://") || remoteUrl.startsWith("http://"))) {
+                val msg = "SSH auth selected but URL is HTTP/HTTPS: $remoteUrl — convert to SSH URL (git@...) first"
+                Log.e(TAG, msg)
+                error(msg)
+            }
+            val dir = File(localPath)
+            // If the directory already exists (e.g. previous clone / reconnect scenario),
+            // wipe it so JGit doesn't throw "destination path already exists and is not an empty directory".
+            if (dir.exists()) {
+                Log.i(TAG, "clone: target dir exists — deleting before re-clone: $localPath")
+                dir.deleteRecursively()
+            }
+            dir.mkdirs()
             val cmd = Git.cloneRepository()
                 .setURI(remoteUrl)
                 .setDirectory(dir)
@@ -78,7 +98,7 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
         }.fold(
             onSuccess = { GitResult.Success(Unit) },
             onFailure = { e ->
-                Log.e(TAG, "clone failed", e)
+                Log.e(TAG, "clone failed: ${e::class.simpleName} — ${e.message}", e)
                 GitResult.Failure(e)
             }
         )

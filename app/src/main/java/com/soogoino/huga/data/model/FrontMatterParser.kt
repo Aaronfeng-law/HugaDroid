@@ -103,7 +103,7 @@ object FrontMatterParser {
             yamlLoader.loadFromString(yaml) as? Map<String, Any>
         }.getOrNull() ?: return HugoFrontMatter()
 
-        val knownKeys = setOf("title", "date", "draft", "tags", "categories", "description", "slug", "weight", "cover")
+        val knownKeys = setOf("title", "date", "draft", "tags", "categories", "keywords", "description", "slug", "weight", "cover")
         val extra = map.filterKeys { it !in knownKeys }
 
         // cover can be a plain string or a map { image: "path" } (Hugo page params style)
@@ -121,6 +121,7 @@ object FrontMatterParser {
             // object even if the YAML source used an alias (*id) to share the same node.
             tags = (map["tags"] as? List<*>)?.map { it.toString() } ?: emptyList(),
             categories = (map["categories"] as? List<*>)?.map { it.toString() } ?: emptyList(),
+            keywords = (map["keywords"] as? List<*>)?.map { it.toString() } ?: emptyList(),
             description = map["description"]?.toString() ?: "",
             slug = map["slug"]?.toString() ?: "",
             weight = (map["weight"] as? Number)?.toInt(),
@@ -140,6 +141,7 @@ object FrontMatterParser {
         // emits YAML anchors (&id001 / *id001) which corrupt subsequent round-trips.
         map["tags"] = ArrayList(fm.tags)
         map["categories"] = ArrayList(fm.categories)
+        if (fm.keywords.isNotEmpty()) map["keywords"] = ArrayList(fm.keywords)
         map["description"] = fm.description
         fm.weight?.let { map["weight"] = it }
         if (fm.coverImage.isNotBlank()) map["cover"] = fm.coverImage
@@ -195,13 +197,14 @@ object FrontMatterParser {
             }
         }
 
-        val knownKeys = setOf("title", "date", "draft", "tags", "categories", "description", "slug", "weight", "cover")
+        val knownKeys = setOf("title", "date", "draft", "tags", "categories", "keywords", "description", "slug", "weight", "cover")
         return HugoFrontMatter(
             title = map["title"]?.toString() ?: "",
             date = map["date"]?.toString() ?: "",
             draft = map["draft"] as? Boolean ?: false,
             tags = (map["tags"] as? List<*>)?.map { it.toString() } ?: emptyList(),
             categories = (map["categories"] as? List<*>)?.map { it.toString() } ?: emptyList(),
+            keywords = (map["keywords"] as? List<*>)?.map { it.toString() } ?: emptyList(),
             description = map["description"]?.toString() ?: "",
             slug = map["slug"]?.toString() ?: "",
             weight = (map["weight"] as? Number)?.toInt(),
@@ -221,6 +224,10 @@ object FrontMatterParser {
         sb.appendLine("tags = [$tagsStr]")
         val catStr = fm.categories.joinToString(", ") { "\"$it\"" }
         sb.appendLine("categories = [$catStr]")
+        if (fm.keywords.isNotEmpty()) {
+            val kwStr = fm.keywords.joinToString(", ") { "\"$it\"" }
+            sb.appendLine("keywords = [$kwStr]")
+        }
         sb.appendLine("""description = "${fm.description}"""")
         fm.weight?.let { sb.appendLine("weight = $it") }
         if (fm.coverImage.isNotBlank()) sb.appendLine("""cover = "${fm.coverImage}"""")

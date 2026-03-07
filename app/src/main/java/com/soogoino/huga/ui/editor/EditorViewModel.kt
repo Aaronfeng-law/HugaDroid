@@ -12,7 +12,6 @@ import com.soogoino.huga.data.model.HugoFrontMatter
 import com.soogoino.huga.data.model.HugoPost
 import com.soogoino.huga.data.prefs.AppPreferences
 import com.soogoino.huga.data.prefs.MediaStrategy
-import com.soogoino.huga.domain.AutoSaveUseCase
 import com.soogoino.huga.domain.ReadPostUseCase
 import com.soogoino.huga.domain.SavePostUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -58,7 +57,6 @@ class EditorViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val readPostUseCase: ReadPostUseCase,
     private val savePostUseCase: SavePostUseCase,
-    private val autoSaveUseCase: AutoSaveUseCase,
     private val prefs: AppPreferences,
 ) : ViewModel() {
 
@@ -90,10 +88,18 @@ class EditorViewModel @Inject constructor(
                 .debounce(500L)
                 .distinctUntilChanged()
                 .flowOn(Dispatchers.IO)
-                .collectLatest { content ->
-                    if (filePath.isNotBlank() && _uiState.value.saveState == SaveState.UNSAVED) {
+                .collectLatest { _ ->
+                    val s = _uiState.value
+                    val orig = s.post ?: return@collectLatest
+                    if (filePath.isNotBlank() && s.saveState == SaveState.UNSAVED) {
                         _uiState.update { it.copy(saveState = SaveState.SAVING) }
-                        autoSaveUseCase(filePath, content)
+                        savePostUseCase(
+                            orig.copy(
+                                frontMatter = s.frontMatter,
+                                frontMatterFormat = s.frontMatterFormat,
+                                bodyMarkdown = s.bodyText,
+                            )
+                        )
                         _uiState.update { it.copy(saveState = SaveState.SAVED) }
                     }
                 }
@@ -157,9 +163,16 @@ class EditorViewModel @Inject constructor(
     /** Force-save immediately (called on pause/stop). */
     fun forceSave() {
         viewModelScope.launch(Dispatchers.IO) {
-            val content = serialiseCurrent()
-            if (filePath.isNotBlank() && content.isNotBlank()) {
-                autoSaveUseCase(filePath, content)
+            val s = _uiState.value
+            val orig = s.post ?: return@launch
+            if (filePath.isNotBlank()) {
+                savePostUseCase(
+                    orig.copy(
+                        frontMatter = s.frontMatter,
+                        frontMatterFormat = s.frontMatterFormat,
+                        bodyMarkdown = s.bodyText,
+                    )
+                )
                 _uiState.update { it.copy(saveState = SaveState.SAVED) }
             }
         }

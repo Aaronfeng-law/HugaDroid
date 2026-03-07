@@ -4,4 +4,6 @@
     <cache-path name="camera_photos" path="camera/" />
     <!-- For SSH keys stored in files dir -->
     <files-path name="ssh_keys" path=".ssh/" />
+    <!-- For repo files (shared to external apps) -->
+    <files-path name="repo" path="repo/" />
 </paths>

@@ -1,5 +1,7 @@
 package com.soogoino.huga.ui.posts
 
+import com.soogoino.huga.ui.util.countWords
+import com.soogoino.huga.ui.util.estimatedMinRead
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,11 +28,14 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
 import androidx.compose.ui.res.stringResource
+import com.soogoino.huga.ui.components.HugaNavigationBar
+import com.soogoino.huga.ui.components.HugaTab
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PostsScreen(
     onOpenPost: (filePath: String) -> Unit,
+    onNavigateToHome: () -> Unit,
     onNavigateToSync: () -> Unit,
     onNavigateToFiles: () -> Unit,
     onNavigateToSettings: () -> Unit,
@@ -116,26 +121,12 @@ fun PostsScreen(
             )
         },
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = true,
-                    onClick = {},
-                    icon = { Icon(Icons.Filled.Article, contentDescription = null) },
-                    label = { Text(stringResource(R.string.posts)) },
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onNavigateToFiles,
-                    icon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },
-                    label = { Text(stringResource(R.string.files)) },
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onNavigateToSettings,
-                    icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
-                    label = { Text(stringResource(R.string.settings)) },
-                )
-            }
+            HugaNavigationBar(
+                selected = HugaTab.POSTS,
+                onHome = onNavigateToHome,
+                onPosts = {},
+                onFiles = onNavigateToFiles,
+            )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
@@ -338,13 +329,26 @@ private fun PostCard(
                     Spacer(Modifier.height(6.dp))
                 }
 
-                // Date
-                if (post.frontMatter.date.isNotBlank()) {
-                    Text(
-                        text = formatDate(post.frontMatter.date),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
+                // Date + reading time
+                if (post.frontMatter.date.isNotBlank() || post.bodyMarkdown.isNotBlank()) {
+                    val wordCount = countWords(post.bodyMarkdown)
+                    val minRead = estimatedMinRead(post.bodyMarkdown)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (post.frontMatter.date.isNotBlank()) {
+                            Text(
+                                text = formatDate(post.frontMatter.date),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                        if (wordCount > 0) {
+                            Text(
+                                text = stringResource(R.string.min_read, minRead),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                    }
                 }
             }
 
@@ -470,6 +474,8 @@ private fun EmptyPostsPlaceholder(onCreate: () -> Unit) {
             Spacer(Modifier.height(8.dp))
             Text(stringResource(R.string.create_first_post), style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(24.dp))
+            FilledTonalButton(onClick = onCreate) { Text(stringResource(R.string.new_post)) }
         }
     }
 }

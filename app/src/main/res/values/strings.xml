@@ -10,12 +10,28 @@
     <string name="create">Create</string>
     <string name="insert">Insert</string>
     <string name="remove">Remove</string>
+    <string name="copy">Copy</string>
+    <string name="paste">Paste</string>
     <string name="more_options">More</string>
 
     <!-- ── Navigation / Bottom bar ───────────────────────────────── -->
+    <string name="home">Home</string>
     <string name="posts">Posts</string>
     <string name="sync">Sync</string>
     <string name="settings">Settings</string>
+
+    <!-- ── Home / Dashboard ──────────────────────────────────────── -->
+    <string name="dashboard">Dashboard</string>
+    <string name="published">Published</string>
+    <string name="drafts_count">Drafts</string>
+    <string name="writing_days">Writing Days</string>
+    <string name="unique_tags">Unique Tags</string>
+    <string name="unique_categories">Categories</string>
+    <string name="total_words">Total Words</string>
+    <string name="working_papers">Working Papers</string>
+    <string name="no_drafts">No drafts — all caught up!</string>
+    <!-- %d = estimated minutes -->
+    <string name="min_read">%d min read</string>
 
     <!-- ── Editor ────────────────────────────────────────────────── -->
     <string name="untitled">Untitled</string>
@@ -59,6 +75,8 @@
     <string name="cover_image_path">Cover Image path</string>
     <string name="cover_image_placeholder">e.g. cover.jpg or /images/cover.jpg</string>
     <string name="cover_image_supporting">Relative to bundle dir (PAGE_BUNDLE) or absolute from site root</string>
+    <string name="keywords">Keywords</string>
+    <string name="add_keyword">Add keyword</string>
 
     <!-- ── Posts Screen ──────────────────────────────────────────── -->
     <string name="new_post">New Post</string>
@@ -180,4 +198,22 @@
     <string name="empty_folder">This folder is empty</string>
     <!-- %s = file/folder name -->
     <string name="delete_file_confirmation">Delete \"%s\"? This cannot be undone.</string>
+    <string name="open_with">Open with…</string>
+    <string name="close">Close</string>
+    <string name="select">Select</string>
+    <string name="select_all">Select all</string>
+    <string name="clear_selection">Clear selection</string>
+    <!-- %d = selected files count -->
+    <string name="selected_count">%d selected</string>
+    <string name="convert_to_webp">Convert to WebP</string>
+    <!-- %d = selected images count -->
+    <string name="convert_selected_confirmation">Convert %d selected image(s) to WebP?</string>
+    <string name="delete_original_title">Delete original files?</string>
+    <!-- %d = selected entries count -->
+    <string name="delete_selected_confirmation">Delete %d selected item(s)? This cannot be undone.</string>
+    <!-- %d = converted files count -->
+    <string name="delete_selected_originals_confirmation">Converted %d image(s). Delete original file(s)?</string>
+    <!-- %1$d = converted files count, %2$d = skipped files count -->
+    <string name="delete_selected_originals_and_skipped">Converted %1$d image(s), skipped %2$d. Delete converted originals?</string>
+    <string name="keep">Keep</string>
 </resources>

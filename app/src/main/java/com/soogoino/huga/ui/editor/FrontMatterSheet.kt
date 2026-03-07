@@ -137,23 +137,6 @@ fun FrontMatterSheet(
 
             // Tags
             Text("Tags", style = MaterialTheme.typography.titleSmall)
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                tags.forEach { tag ->
-                    InputChip(
-                        selected = false,
-                        onClick = {},
-                        label = { Text(tag) },
-                        trailingIcon = {
-                            IconButton(onClick = { tags.remove(tag) }, modifier = Modifier.size(18.dp)) {
-                                Icon(Icons.Filled.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp))
-                            }
-                        },
-                    )
-                }
-            }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = newTag,
@@ -173,26 +156,28 @@ fun FrontMatterSheet(
                     Icon(Icons.Filled.Add, contentDescription = "Add tag")
                 }
             }
+            if (tags.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    tags.forEach { tag ->
+                        InputChip(
+                            selected = false,
+                            onClick = {},
+                            label = { Text(tag) },
+                            trailingIcon = {
+                                IconButton(onClick = { tags.remove(tag) }, modifier = Modifier.size(18.dp)) {
+                                    Icon(Icons.Filled.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp))
+                                }
+                            },
+                        )
+                    }
+                }
+            }
 
             // Categories
             Text("Categories", style = MaterialTheme.typography.titleSmall)
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                categories.forEach { cat ->
-                    InputChip(
-                        selected = false,
-                        onClick = {},
-                        label = { Text(cat) },
-                        trailingIcon = {
-                            IconButton(onClick = { categories.remove(cat) }, modifier = Modifier.size(18.dp)) {
-                                Icon(Icons.Filled.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp))
-                            }
-                        },
-                    )
-                }
-            }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = newCategory,
@@ -210,6 +195,25 @@ fun FrontMatterSheet(
                     if (newCategory.isNotBlank()) { categories.add(newCategory.trim()); newCategory = "" }
                 }) {
                     Icon(Icons.Filled.Add, contentDescription = "Add category")
+                }
+            }
+            if (categories.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    categories.forEach { cat ->
+                        InputChip(
+                            selected = false,
+                            onClick = {},
+                            label = { Text(cat) },
+                            trailingIcon = {
+                                IconButton(onClick = { categories.remove(cat) }, modifier = Modifier.size(18.dp)) {
+                                    Icon(Icons.Filled.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp))
+                                }
+                            },
+                        )
+                    }
                 }
             }
 

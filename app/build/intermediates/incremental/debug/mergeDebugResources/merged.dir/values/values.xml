@@ -110,6 +110,7 @@
     <integer name="status_bar_notification_info_maxnum">999</integer>
     <string name="actions">Actions</string>
     <string name="add_category">Add category</string>
+    <string name="add_keyword">Add keyword</string>
     <string name="add_tag">Add tag</string>
     <string name="add_to_github">Add to GitHub Deploy Keys</string>
     <string name="advanced">Advanced</string>
@@ -137,8 +138,10 @@
     <string name="call_notification_screening_text">Screening an incoming call</string>
     <string name="cancel">Cancel</string>
     <string name="categories">Categories</string>
+    <string name="clear_selection">Clear selection</string>
     <string name="clone_repository">Clone Repository</string>
     <string name="cloning">Cloning…</string>
+    <string name="close">Close</string>
     <string name="close_drawer">"Close navigation menu"</string>
     <string name="close_sheet">"Close sheet"</string>
     <string name="collapse">Collapse</string>
@@ -148,6 +151,9 @@
     <string name="commit_message_placeholder">Update: my-post</string>
     <string name="commits_ahead">%d commit(s) ahead of remote</string>
     <string name="connect_repo_body">Connect your Hugo repository to start editing.</string>
+    <string name="convert_selected_confirmation">Convert %d selected image(s) to WebP?</string>
+    <string name="convert_to_webp">Convert to WebP</string>
+    <string name="copy">Copy</string>
     <string name="copy_public_key">Copy to clipboard</string>
     <string name="copy_to_clipboard">Copy to Clipboard</string>
     <string name="cover_image_path">Cover Image path</string>
@@ -155,6 +161,7 @@
     <string name="cover_image_supporting">Relative to bundle dir (PAGE_BUNDLE) or absolute from site root</string>
     <string name="create">Create</string>
     <string name="create_first_post">Create your first post with the + button below.</string>
+    <string name="dashboard">Dashboard</string>
     <string name="date">Date</string>
     <string name="date_iso_label">Date (ISO-8601)</string>
     <string name="date_iso_placeholder">e.g. 2026-03-06T12:00:00+08:00</string>
@@ -162,14 +169,19 @@
     <string name="default_popup_window_title" ns1:ignore="ExtraTranslation">"Pop-Up Window"</string>
     <string name="delete">Delete</string>
     <string name="delete_file_confirmation">Delete \"%s\"? This cannot be undone.</string>
+    <string name="delete_original_title">Delete original files?</string>
     <string name="delete_post_confirmation">Delete \"%s\"? This cannot be undone.</string>
     <string name="delete_post_title">Delete Post</string>
+    <string name="delete_selected_confirmation">Delete %d selected item(s)? This cannot be undone.</string>
+    <string name="delete_selected_originals_and_skipped">Converted %1$d image(s), skipped %2$d. Delete converted originals?</string>
+    <string name="delete_selected_originals_confirmation">Converted %d image(s). Delete original file(s)?</string>
     <string name="description">Description</string>
     <string name="dialog_insert_image_title">Insert Image</string>
     <string name="disconnect_repository">Disconnect Repository</string>
     <string name="draft">Draft</string>
     <string name="draft_chip">Draft</string>
     <string name="draft_subtitle">Draft posts are not published</string>
+    <string name="drafts_count">Drafts</string>
     <string name="drafts_only">Drafts only</string>
     <string name="dropdown_menu">"Dropdown menu"</string>
     <string name="edit">Edit</string>
@@ -187,6 +199,7 @@
     <string name="generate_ssh_key">Generate SSH Key</string>
     <string name="git_sync">Git Sync</string>
     <string name="git_username">Git username</string>
+    <string name="home">Home</string>
     <string name="image_alt_text">Alt text (for accessibility)</string>
     <string name="image_alt_text_placeholder">Describe the image</string>
     <string name="image_file_name">File name</string>
@@ -197,6 +210,8 @@
     <string name="insert">Insert</string>
     <string name="insert_image">Insert image</string>
     <string name="insert_media">Insert Media</string>
+    <string name="keep">Keep</string>
+    <string name="keywords">Keywords</string>
     <string name="m3c_bottom_sheet_collapse_description">Collapse bottom sheet</string>
     <string name="m3c_bottom_sheet_dismiss_description">Dismiss bottom sheet</string>
     <string name="m3c_bottom_sheet_drag_handle_description">Drag handle</string>
@@ -264,6 +279,7 @@
     <string name="media_storage_desc">Where images captured or picked are saved in the repo:</string>
     <string name="message">Message</string>
     <string name="min_interval">15 min</string>
+    <string name="min_read">%d min read</string>
     <string name="more_options">More</string>
     <string name="name">Name</string>
     <string name="navigation_menu">"Navigation menu"</string>
@@ -272,13 +288,16 @@
     <string name="new_post">New Post</string>
     <string name="new_post_slug_hint">Enter a URL-safe slug (e.g. my-first-post)</string>
     <string name="newest_first">Newest First</string>
+    <string name="no_drafts">No drafts — all caught up!</string>
     <string name="no_posts_yet">No posts yet</string>
     <string name="no_repo_configured">No repository configured</string>
     <string name="not_selected">Not selected</string>
     <string name="now">Now</string>
     <string name="oldest_first">Oldest First</string>
+    <string name="open_with">Open with…</string>
     <string name="page_bundle_label">Page Bundle (content/posts/&lt;slug>/image.jpg)</string>
     <string name="page_bundle_subtitle">Hugo best practice – images live next to index.md</string>
+    <string name="paste">Paste</string>
     <string name="pat_auth_label">Personal Access Token (HTTPS)</string>
     <string name="pending_changes">%d pending change(s)</string>
     <string name="personal_access_token">Personal Access Token</string>
@@ -288,6 +307,7 @@
     <string name="preview_mode">Preview</string>
     <string name="public_key">Public Key</string>
     <string name="public_key_card_label">Public Key (add to GitHub → Deploy Keys)</string>
+    <string name="published">Published</string>
     <string name="pull">Pull</string>
     <string name="push">Push</string>
     <string name="range_end">"Range end"</string>
@@ -306,7 +326,10 @@
     <string name="search">Search</string>
     <string name="search_posts_placeholder">Search posts…</string>
     <string name="section">Section</string>
+    <string name="select">Select</string>
+    <string name="select_all">Select all</string>
     <string name="selected">Selected</string>
+    <string name="selected_count">%d selected</string>
     <string name="set_up">Set Up</string>
     <string name="set_up_repository">Set Up Repository</string>
     <string name="settings">Settings</string>
@@ -344,11 +367,16 @@
     <string name="title_a_z">Title A–Z</string>
     <string name="tooltip_description">tooltip</string>
     <string name="tooltip_label">show tooltip</string>
+    <string name="total_words">Total Words</string>
+    <string name="unique_categories">Categories</string>
+    <string name="unique_tags">Unique Tags</string>
     <string name="unsaved_changes">Unsaved changes</string>
     <string name="untitled">Untitled</string>
     <string name="url">URL</string>
     <string name="url_placeholder">https://github.com/you/blog.git  or  git@github.com:you/blog.git</string>
     <string name="use_lowercase">Use lowercase letters, numbers, and hyphens only</string>
+    <string name="working_papers">Working Papers</string>
+    <string name="writing_days">Writing Days</string>
     <string name="your_email">Your Email</string>
     <string name="your_name">Your Name</string>
     <style name="DialogWindowTheme">

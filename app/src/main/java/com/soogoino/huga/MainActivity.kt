@@ -46,7 +46,7 @@ class MainActivity : ComponentActivity() {
                     var startDest by remember { mutableStateOf<String?>(null) }
                     LaunchedEffect(Unit) {
                         val settings = prefs.settings.first()
-                        startDest = if (settings.isRepoSetup) Screen.Posts.route else Screen.Setup.route
+                        startDest = if (settings.isRepoSetup) Screen.Home.route else Screen.Setup.route
                     }
 
                     startDest?.let { dest ->

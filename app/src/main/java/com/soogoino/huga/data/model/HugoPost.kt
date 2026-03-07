@@ -10,6 +10,7 @@ data class HugoFrontMatter(
     val draft: Boolean = false,
     val tags: List<String> = emptyList(),
     val categories: List<String> = emptyList(),
+    val keywords: List<String> = emptyList(),
     val description: String = "",
     val slug: String = "",
     val weight: Int? = null,

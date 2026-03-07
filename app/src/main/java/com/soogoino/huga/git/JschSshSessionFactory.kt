@@ -3,7 +3,9 @@ package com.soogoino.huga.git
 import android.util.Log
 import com.jcraft.jsch.ChannelExec
 import com.jcraft.jsch.JSch
+import com.jcraft.jsch.JSchException
 import com.jcraft.jsch.Session
+import org.eclipse.jgit.errors.TransportException
 import org.eclipse.jgit.transport.RemoteSession
 import org.eclipse.jgit.transport.SshSessionFactory
 import org.eclipse.jgit.transport.URIish
@@ -34,34 +36,41 @@ class JschSshSessionFactory(
         fs: FS,
         tmsec: Int,
     ): RemoteSession {
-        Log.d(TAG, "getSession: ${uri.user}@${uri.host}:${uri.port.let { if (it < 0) 22 else it }}")
-
-        val jsch = JSch()
-        val keyFile = File(keyPath)
-        if (keyFile.exists()) {
-            Log.d(TAG, "addIdentity: $keyPath (${keyFile.length()} bytes)")
-            jsch.addIdentity(keyPath)
-        } else {
-            Log.e(TAG, "Key file not found: $keyPath")
-            throw IllegalStateException("SSH key not found at $keyPath")
-        }
-
-        val host = uri.host ?: throw IllegalStateException("No host in URI: $uri")
         val port = if (uri.port > 0) uri.port else 22
         val user = uri.user ?: "git"
+        val host = uri.host ?: run {
+            Log.e(TAG, "No host in URI: $uri")
+            throw TransportException(uri, "No host in URI: $uri")
+        }
+        Log.d(TAG, "getSession: $user@$host:$port  keyPath=$keyPath")
 
-        val session: Session = jsch.getSession(user, host, port)
-        // TOFU: accept all server host keys (equivalent to StrictHostKeyChecking=no)
-        session.setConfig("StrictHostKeyChecking", "no")
-        session.setConfig("PreferredAuthentications", "publickey")
-        // Avoid server-alive issues on Android networking
-        session.setConfig("ServerAliveInterval", "60")
+        try {
+            val jsch = JSch()
+            val keyFile = File(keyPath)
+            if (keyFile.exists()) {
+                Log.d(TAG, "addIdentity: $keyPath (${keyFile.length()} bytes)")
+                jsch.addIdentity(keyPath)
+            } else {
+                Log.e(TAG, "Key file not found: $keyPath")
+                throw TransportException(uri, "SSH key not found at $keyPath")
+            }
 
-        val timeout = if (tmsec > 0) tmsec else 30_000
-        session.connect(timeout)
-        Log.i(TAG, "Connected to $host:$port as $user (${session.serverVersion})")
+            val session: Session = jsch.getSession(user, host, port)
+            // TOFU: accept all server host keys (equivalent to StrictHostKeyChecking=no)
+            session.setConfig("StrictHostKeyChecking", "no")
+            session.setConfig("PreferredAuthentications", "publickey")
+            // Avoid server-alive issues on Android networking
+            session.setConfig("ServerAliveInterval", "60")
 
-        return JschRemoteSession(session)
+            val timeout = if (tmsec > 0) tmsec else 30_000
+            Log.d(TAG, "connecting with timeout=${timeout}ms …")
+            session.connect(timeout)
+            Log.i(TAG, "Connected to $host:$port as $user (${session.serverVersion})")
+            return JschRemoteSession(session)
+        } catch (e: JSchException) {
+            Log.e(TAG, "JSch auth/connect failure: ${e.message}", e)
+            throw TransportException(uri, "SSH error: ${e.message}", e)
+        }
     }
 
     override fun getType(): String = "jsch-android"

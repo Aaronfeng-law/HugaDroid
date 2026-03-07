@@ -29,9 +29,10 @@ import java.time.format.DateTimeFormatter
 /**
  * Full-screen Front Matter editing tab.
  *
- * Common fields (always visible): Title, Draft, Tags, Categories, Description.
- * Advanced fields (collapsible): Date, Slug, Cover Image.
+ * Common fields (always visible): Title, Date, Draft, Description, Tags, Categories.
+ * Advanced fields (collapsible): Slug, Cover Image, Keywords.
  *
+ * All fields use a uniform layout: standalone section label (titleSmall) above the input widget.
  * Every field change calls [onChanged] immediately — no "Done" button needed.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -41,21 +42,21 @@ fun FrontMatterTab(
     onChanged: (HugoFrontMatter) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Local mutable state mirrors the incoming frontMatter so changes are instant in the UI
-    var title by remember(frontMatter.title) { mutableStateOf(frontMatter.title) }
-    var draft by remember(frontMatter.draft) { mutableStateOf(frontMatter.draft) }
+    var title       by remember(frontMatter.title)       { mutableStateOf(frontMatter.title) }
+    var draft       by remember(frontMatter.draft)       { mutableStateOf(frontMatter.draft) }
     var description by remember(frontMatter.description) { mutableStateOf(frontMatter.description) }
-    var date by remember(frontMatter.date) { mutableStateOf(frontMatter.date) }
-    var slug by remember(frontMatter.slug) { mutableStateOf(frontMatter.slug) }
-    var coverImage by remember(frontMatter.coverImage) { mutableStateOf(frontMatter.coverImage) }
-    val tags = remember(frontMatter.tags) { mutableStateListOf(*frontMatter.tags.toTypedArray()) }
+    var date        by remember(frontMatter.date)        { mutableStateOf(frontMatter.date) }
+    var slug        by remember(frontMatter.slug)        { mutableStateOf(frontMatter.slug) }
+    var coverImage  by remember(frontMatter.coverImage)  { mutableStateOf(frontMatter.coverImage) }
+    val tags       = remember(frontMatter.tags)       { mutableStateListOf(*frontMatter.tags.toTypedArray()) }
     val categories = remember(frontMatter.categories) { mutableStateListOf(*frontMatter.categories.toTypedArray()) }
-    var newTag by remember { mutableStateOf("") }
+    val keywords   = remember(frontMatter.keywords)   { mutableStateListOf(*frontMatter.keywords.toTypedArray()) }
+    var newTag      by remember { mutableStateOf("") }
     var newCategory by remember { mutableStateOf("") }
+    var newKeyword  by remember { mutableStateOf("") }
     var showAdvanced by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
-    // Helper to emit the current state after any change
     fun emit() {
         onChanged(
             frontMatter.copy(
@@ -67,6 +68,7 @@ fun FrontMatterTab(
                 coverImage = coverImage,
                 tags = tags.toList(),
                 categories = categories.toList(),
+                keywords = keywords.toList(),
             )
         )
     }
@@ -81,13 +83,31 @@ fun FrontMatterTab(
     ) {
 
         // ── Title ──────────────────────────────────────────────────────────
+        FmFieldLabel(R.string.title)
         OutlinedTextField(
             value = title,
             onValueChange = { title = it; emit() },
-            label = { Text(stringResource(R.string.title)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+        )
+
+        // ── Date ───────────────────────────────────────────────────────────
+        FmFieldLabel(R.string.date)
+        OutlinedTextField(
+            value = date,
+            onValueChange = { date = it; emit() },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text(stringResource(R.string.date_iso_placeholder)) },
+            trailingIcon = {
+                TextButton(onClick = {
+                    date = Instant.now()
+                        .atOffset(ZoneOffset.UTC)
+                        .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                    emit()
+                }) { Text(stringResource(R.string.now)) }
+            },
         )
 
         // ── Draft toggle ───────────────────────────────────────────────────
@@ -104,111 +124,46 @@ fun FrontMatterTab(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Switch(
-                checked = draft,
-                onCheckedChange = { draft = it; emit() },
-            )
+            Switch(checked = draft, onCheckedChange = { draft = it; emit() })
         }
 
         // ── Description ────────────────────────────────────────────────────
+        FmFieldLabel(R.string.description)
         OutlinedTextField(
             value = description,
             onValueChange = { description = it; emit() },
-            label = { Text(stringResource(R.string.description)) },
             modifier = Modifier.fillMaxWidth(),
             minLines = 2,
             maxLines = 4,
         )
 
         // ── Tags ───────────────────────────────────────────────────────────
-        Text(stringResource(R.string.tags), style = MaterialTheme.typography.titleSmall)
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            tags.toList().forEach { tag ->
-                InputChip(
-                    selected = false,
-                    onClick = {},
-                    label = { Text(tag) },
-                    trailingIcon = {
-                        IconButton(
-                            onClick = { tags.remove(tag); emit() },
-                            modifier = Modifier.size(18.dp),
-                        ) {
-                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.remove), modifier = Modifier.size(14.dp))
-                        }
-                    },
-                )
-            }
-        }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            OutlinedTextField(
-                value = newTag,
-                onValueChange = { newTag = it },
-                label = { Text(stringResource(R.string.add_tag)) },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    if (newTag.isNotBlank()) { tags.add(newTag.trim()); newTag = ""; emit() }
-                    focusManager.clearFocus()
-                }),
-            )
-            IconButton(onClick = {
+        FmFieldLabel(R.string.tags)
+        FmChipInput(
+            value = newTag,
+            onValueChange = { newTag = it },
+            onAdd = { if (newTag.isNotBlank()) { tags.add(newTag.trim()); newTag = ""; emit() } },
+            onDone = {
                 if (newTag.isNotBlank()) { tags.add(newTag.trim()); newTag = ""; emit() }
-            }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_tag))
-            }
-        }
+                focusManager.clearFocus()
+            },
+            addContentDescription = stringResource(R.string.add_tag),
+        )
+        FmChipRow(items = tags.toList(), onRemove = { tags.remove(it); emit() })
 
         // ── Categories ─────────────────────────────────────────────────────
-        Text(stringResource(R.string.categories), style = MaterialTheme.typography.titleSmall)
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            categories.toList().forEach { cat ->
-                InputChip(
-                    selected = false,
-                    onClick = {},
-                    label = { Text(cat) },
-                    trailingIcon = {
-                        IconButton(
-                            onClick = { categories.remove(cat); emit() },
-                            modifier = Modifier.size(18.dp),
-                        ) {
-                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.remove), modifier = Modifier.size(14.dp))
-                        }
-                    },
-                )
-            }
-        }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            OutlinedTextField(
-                value = newCategory,
-                onValueChange = { newCategory = it },
-                label = { Text(stringResource(R.string.add_category)) },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    if (newCategory.isNotBlank()) { categories.add(newCategory.trim()); newCategory = ""; emit() }
-                    focusManager.clearFocus()
-                }),
-            )
-            IconButton(onClick = {
+        FmFieldLabel(R.string.categories)
+        FmChipInput(
+            value = newCategory,
+            onValueChange = { newCategory = it },
+            onAdd = { if (newCategory.isNotBlank()) { categories.add(newCategory.trim()); newCategory = ""; emit() } },
+            onDone = {
                 if (newCategory.isNotBlank()) { categories.add(newCategory.trim()); newCategory = ""; emit() }
-            }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_category))
-            }
-        }
+                focusManager.clearFocus()
+            },
+            addContentDescription = stringResource(R.string.add_category),
+        )
+        FmChipRow(items = categories.toList(), onRemove = { categories.remove(it); emit() })
 
         // ── Advanced section (collapsible) ─────────────────────────────────
         HorizontalDivider()
@@ -230,51 +185,118 @@ fun FrontMatterTab(
         AnimatedVisibility(visible = showAdvanced) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
-                // Date
-                OutlinedTextField(
-                    value = date,
-                    onValueChange = { date = it; emit() },
-                    label = { Text(stringResource(R.string.date_iso_label)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    placeholder = { Text(stringResource(R.string.date_iso_placeholder)) },
-                    trailingIcon = {
-                        TextButton(onClick = {
-                            date = Instant.now()
-                                .atOffset(ZoneOffset.UTC)
-                                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-                            emit()
-                        }) { Text(stringResource(R.string.now)) }
-                    },
-                )
-
                 // Slug
+                FmFieldLabel(R.string.slug_optional)
                 OutlinedTextField(
                     value = slug,
                     onValueChange = { slug = it; emit() },
-                    label = { Text(stringResource(R.string.slug_optional)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 )
 
                 // Cover image
+                FmFieldLabel(R.string.cover_image_path)
                 OutlinedTextField(
                     value = coverImage,
                     onValueChange = { coverImage = it; emit() },
-                    label = { Text(stringResource(R.string.cover_image_path)) },
                     placeholder = { Text(stringResource(R.string.cover_image_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    supportingText = {
-                        Text(
-                            stringResource(R.string.cover_image_supporting),
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 )
+                Text(
+                    stringResource(R.string.cover_image_supporting),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.offset(y = (-8).dp),
+                )
+
+                // Keywords
+                FmFieldLabel(R.string.keywords)
+                FmChipInput(
+                    value = newKeyword,
+                    onValueChange = { newKeyword = it },
+                    onAdd = { if (newKeyword.isNotBlank()) { keywords.add(newKeyword.trim()); newKeyword = ""; emit() } },
+                    onDone = {
+                        if (newKeyword.isNotBlank()) { keywords.add(newKeyword.trim()); newKeyword = ""; emit() }
+                        focusManager.clearFocus()
+                    },
+                    addContentDescription = stringResource(R.string.add_keyword),
+                )
+                FmChipRow(items = keywords.toList(), onRemove = { keywords.remove(it); emit() })
             }
+        }
+    }
+}
+
+// ─── Shared primitives ────────────────────────────────────────────────────────
+
+@Composable
+private fun FmFieldLabel(labelRes: Int) {
+    Text(
+        text = stringResource(labelRes),
+        style = MaterialTheme.typography.titleSmall,
+    )
+}
+
+@Composable
+private fun FmChipInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onAdd: () -> Unit,
+    onDone: () -> Unit,
+    addContentDescription: String,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { onDone() }),
+        )
+        IconButton(onClick = onAdd) {
+            Icon(Icons.Filled.Add, contentDescription = addContentDescription)
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FmChipRow(
+    items: List<String>,
+    onRemove: (String) -> Unit,
+) {
+    if (items.isEmpty()) return
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .offset(y = (-8).dp),
+    ) {
+        items.forEach { item ->
+            InputChip(
+                selected = false,
+                onClick = {},
+                label = { Text(item) },
+                trailingIcon = {
+                    IconButton(
+                        onClick = { onRemove(item) },
+                        modifier = Modifier.size(18.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = item,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                },
+            )
         }
     }
 }
