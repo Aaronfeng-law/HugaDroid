@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -21,6 +23,29 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            // Read from local.properties (local dev) or environment variables (CI / GitHub Actions).
+            // Add these 4 entries to local.properties (never commit that file):
+            //   KEYSTORE_PATH=/absolute/path/to/release.jks
+            //   KEYSTORE_PASSWORD=yourKeystorePass
+            //   KEY_ALIAS=yourKeyAlias
+            //   KEY_PASSWORD=yourKeyPass
+            val props = Properties()
+            rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { props.load(it) }
+            val path  = props.getProperty("KEYSTORE_PATH")     ?: System.getenv("KEYSTORE_PATH")
+            val pass  = props.getProperty("KEYSTORE_PASSWORD") ?: System.getenv("KEYSTORE_PASSWORD")
+            val alias = props.getProperty("KEY_ALIAS")         ?: System.getenv("KEY_ALIAS")
+            val kPass = props.getProperty("KEY_PASSWORD")      ?: System.getenv("KEY_PASSWORD")
+            if (path != null) {
+                storeFile     = file(path)
+                storePassword = pass
+                keyAlias      = alias
+                keyPassword   = kPass
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -28,6 +53,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
         debug {
             isDebuggable = true

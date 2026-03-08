@@ -1,1 +1,0 @@
--keep,allowobfuscation,allowshrinking class com.soogoino.huga.ui.files.FilesViewModel
