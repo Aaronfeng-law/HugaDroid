@@ -1,8 +1,13 @@
 package com.soogoino.huga.ui.settings
 
+import android.Manifest
 import android.content.Context
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -100,24 +105,32 @@ class SettingsViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onNavigateUp: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     var authorName by remember(settings.authorName) { mutableStateOf(settings.authorName) }
     var authorEmail by remember(settings.authorEmail) { mutableStateOf(settings.authorEmail) }
+    var showDisconnectDialog by remember { mutableStateOf(false) }
+
+    // Notification permission launcher (Android 13+)
+    val notifPermLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(context.getString(R.string.notify_silent_warning))
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                },
-            )
+            TopAppBar(title = { Text(stringResource(R.string.settings)) })
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -222,7 +235,21 @@ fun SettingsScreen(
                         Text(stringResource(R.string.auto_sync_subtitle), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Switch(checked = settings.autoSyncEnabled, onCheckedChange = viewModel::setAutoSync)
+                    Switch(
+                        checked = settings.autoSyncEnabled,
+                        onCheckedChange = { enabled ->
+                            // On Android 13+, request POST_NOTIFICATIONS when user enables auto-sync
+                            if (enabled &&
+                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(
+                                    context, Manifest.permission.POST_NOTIFICATIONS
+                                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                            ) {
+                                notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                            viewModel.setAutoSync(enabled)
+                        },
+                    )
                 }
 
                 if (settings.autoSyncEnabled) {
@@ -256,7 +283,7 @@ fun SettingsScreen(
             // Disconnect — standalone at the very bottom
             if (settings.isRepoSetup) {
                 OutlinedButton(
-                    onClick = viewModel::resetSetup,
+                    onClick = { showDisconnectDialog = true },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) {
@@ -268,6 +295,26 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
         }
+    }
+
+    if (showDisconnectDialog) {
+        AlertDialog(
+            onDismissRequest = { showDisconnectDialog = false },
+            icon = { Icon(Icons.Outlined.LinkOff, null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text(stringResource(R.string.disconnect_confirm_title)) },
+            text = { Text(stringResource(R.string.disconnect_confirm_body)) },
+            confirmButton = {
+                Button(
+                    onClick = { showDisconnectDialog = false; viewModel.resetSetup() },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                ) { Text(stringResource(R.string.disconnect_repository)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDisconnectDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 }
 

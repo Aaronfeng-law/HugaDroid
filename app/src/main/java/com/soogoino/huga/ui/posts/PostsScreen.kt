@@ -40,7 +40,7 @@ import androidx.compose.ui.res.stringResource
 fun PostsScreen(
     onOpenPost: (filePath: String) -> Unit,
     onNavigateToSync: () -> Unit,
-    onNavigateToSettings: () -> Unit,
+
     onNavigateToSetup: () -> Unit,
     viewModel: PostsViewModel = hiltViewModel(),
 ) {
@@ -80,6 +80,8 @@ fun PostsScreen(
                             Icon(Icons.Outlined.FilterList, contentDescription = stringResource(R.string.sort))
                         }
                         DropdownMenu(expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
+                            // ─ Date ──────────────────────────────────────────────
+                            SortSectionLabel(stringResource(R.string.sort_section_date))
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.newest_first)) },
                                 onClick = { viewModel.setSortOrder(SortOrder.DATE_DESC); showSortMenu = false },
@@ -90,10 +92,31 @@ fun PostsScreen(
                                 onClick = { viewModel.setSortOrder(SortOrder.DATE_ASC); showSortMenu = false },
                                 leadingIcon = if (uiState.sortOrder == SortOrder.DATE_ASC) { { Icon(Icons.Filled.Check, null) } } else null,
                             )
+                            // ─ Title ───────────────────────────────────────────
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                            SortSectionLabel(stringResource(R.string.sort_section_title))
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.title_a_z)) },
                                 onClick = { viewModel.setSortOrder(SortOrder.TITLE_ASC); showSortMenu = false },
                                 leadingIcon = if (uiState.sortOrder == SortOrder.TITLE_ASC) { { Icon(Icons.Filled.Check, null) } } else null,
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.title_z_a)) },
+                                onClick = { viewModel.setSortOrder(SortOrder.TITLE_DESC); showSortMenu = false },
+                                leadingIcon = if (uiState.sortOrder == SortOrder.TITLE_DESC) { { Icon(Icons.Filled.Check, null) } } else null,
+                            )
+                            // ─ Word count ─────────────────────────────────────
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                            SortSectionLabel(stringResource(R.string.sort_section_words))
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.words_most)) },
+                                onClick = { viewModel.setSortOrder(SortOrder.WORDS_DESC); showSortMenu = false },
+                                leadingIcon = if (uiState.sortOrder == SortOrder.WORDS_DESC) { { Icon(Icons.Filled.Check, null) } } else null,
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.words_fewest)) },
+                                onClick = { viewModel.setSortOrder(SortOrder.WORDS_ASC); showSortMenu = false },
+                                leadingIcon = if (uiState.sortOrder == SortOrder.WORDS_ASC) { { Icon(Icons.Filled.Check, null) } } else null,
                             )
                         }
                     }
@@ -120,9 +143,6 @@ fun PostsScreen(
                         }) {
                             Icon(Icons.Outlined.Sync, contentDescription = stringResource(R.string.sync))
                         }
-                    }
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings))
                     }
                 },
             )
@@ -280,6 +300,17 @@ fun PostsScreen(
             }
         )
     }
+}
+
+/** Small non-interactive section label for the sort dropdown. */
+@Composable
+private fun SortSectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -440,11 +471,6 @@ private fun PostCardMenu(
             Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.more_options))
         }
         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.edit)) },
-                onClick = { showMenu = false; onEdit() },
-                leadingIcon = { Icon(Icons.Outlined.Edit, null) },
-            )
             DropdownMenuItem(
                 text = { Text(if (isPinned) stringResource(R.string.unpin) else stringResource(R.string.pin)) },
                 onClick = { showMenu = false; onTogglePin() },

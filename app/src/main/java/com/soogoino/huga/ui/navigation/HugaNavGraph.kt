@@ -39,9 +39,10 @@ sealed class Screen(val route: String) {
 
 /** Tab 的左右順序，用來判斷滑動方向 */
 private val TAB_ORDER = mapOf(
-    Screen.Home.route to 0,
-    Screen.Posts.route to 1,
-    Screen.Files.route to 2,
+    Screen.Home.route     to 0,
+    Screen.Posts.route    to 1,
+    Screen.Files.route    to 2,
+    Screen.Settings.route to 3,
 )
 
 private fun tabIndexOf(route: String?) = TAB_ORDER[route] ?: -1
@@ -62,10 +63,11 @@ fun HugaNavGraph(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val selectedTab = when (currentRoute) {
-        Screen.Home.route  -> HugaTab.HOME
-        Screen.Posts.route -> HugaTab.POSTS
-        Screen.Files.route -> HugaTab.FILES
-        else               -> null
+        Screen.Home.route     -> HugaTab.HOME
+        Screen.Posts.route    -> HugaTab.POSTS
+        Screen.Files.route    -> HugaTab.FILES
+        Screen.Settings.route -> HugaTab.SETTINGS
+        else                  -> null
     }
 
     Scaffold(
@@ -73,9 +75,10 @@ fun HugaNavGraph(
             if (selectedTab != null) {
                 HugaNavigationBar(
                     selected = selectedTab,
-                    onHome  = { navController.navigateTab(Screen.Home.route) },
-                    onPosts = { navController.navigateTab(Screen.Posts.route) },
-                    onFiles = { navController.navigateTab(Screen.Files.route) },
+                    onHome     = { navController.navigateTab(Screen.Home.route) },
+                    onPosts    = { navController.navigateTab(Screen.Posts.route) },
+                    onFiles    = { navController.navigateTab(Screen.Files.route) },
+                    onSettings = { navController.navigateTab(Screen.Settings.route) },
                 )
             }
         },
@@ -118,8 +121,8 @@ fun HugaNavGraph(
         ) {
             HomeScreen(
                 onNavigateToSync = { navController.navigate(Screen.Sync.route) },
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToSetup = { navController.navigate(Screen.Setup.route) },
+                onNavigateToPosts = { navController.navigateTab(Screen.Posts.route) },
                 onOpenPost = { filePath -> navController.navigate(Screen.Editor.createRoute(filePath)) },
             )
         }
@@ -152,7 +155,6 @@ fun HugaNavGraph(
                     navController.navigate(Screen.Editor.createRoute(filePath))
                 },
                 onNavigateToSync = { navController.navigate(Screen.Sync.route) },
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToSetup = { navController.navigate(Screen.Setup.route) },
             )
         }
@@ -181,7 +183,6 @@ fun HugaNavGraph(
             popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
         ) {
             FilesScreen(
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToSetup = { navController.navigate(Screen.Setup.route) },
                 onOpenFile = { filePath ->
                     navController.navigate(Screen.Editor.createRoute(filePath))
@@ -219,8 +220,27 @@ fun HugaNavGraph(
             )
         }
 
-        composable(Screen.Settings.route) {
-            SettingsScreen(onNavigateUp = { navController.popBackStack() })
+        composable(Screen.Settings.route,
+            enterTransition = {
+                val from = tabIndexOf(initialState.destination.route)
+                val to = tabIndexOf(targetState.destination.route)
+                if (from >= 0 && to >= 0)
+                    slideInHorizontally(initialOffsetX = { if (to > from) it else -it }) + fadeIn()
+                else
+                    slideInHorizontally(initialOffsetX = { -it / 3 }) + fadeIn()
+            },
+            exitTransition = {
+                val from = tabIndexOf(initialState.destination.route)
+                val to = tabIndexOf(targetState.destination.route)
+                if (from >= 0 && to >= 0)
+                    slideOutHorizontally(targetOffsetX = { if (to > from) -it / 3 else it / 3 }) + fadeOut()
+                else
+                    slideOutHorizontally(targetOffsetX = { -it / 3 }) + fadeOut()
+            },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it / 3 }) + fadeIn() },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
+        ) {
+            SettingsScreen()
         }
     }
     }

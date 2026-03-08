@@ -33,6 +33,9 @@
     <string name="pin">Pin</string>
     <string name="unpin">Unpin</string>
     <string name="working_papers">Working Papers</string>
+    <string name="continue_editing">Continue Editing</string>
+    <!-- %d = total draft count -->
+    <string name="view_all_drafts">View all %d drafts</string>
     <string name="no_drafts">No drafts — all caught up!</string>
     <!-- %d = estimated minutes -->
     <string name="min_read">%d min read</string>
@@ -71,7 +74,16 @@
     <!-- Media sheet -->
     <string name="insert_media">Insert Media</string>
     <string name="take_photo">Take Photo</string>
+    <string name="take_photo_subtitle">Capture with camera and insert directly</string>
     <string name="pick_from_gallery">Pick from Gallery</string>
+    <string name="pick_from_gallery_subtitle">Choose an existing image from your device</string>
+    <!-- %s = filename -->
+    <string name="image_inserted">Image inserted: %s</string>
+    <!-- %s = error message -->
+    <string name="image_load_failed">Image load failed: %s</string>
+    <string name="image_insert_failed">Image insert failed: %s</string>
+    <!-- %s = post slug -->
+    <string name="image_fallback_static">Saved to /static/images/%s/ (not a Page Bundle post)</string>
 
     <!-- ── Front Matter Tab ──────────────────────────────────────── -->
     <string name="title">Title</string>
@@ -102,7 +114,13 @@
     <string name="search">Search</string>
     <string name="newest_first">Newest First</string>
     <string name="oldest_first">Oldest First</string>
-    <string name="title_a_z">Title A–Z</string>
+    <string name="title_a_z">A → Z</string>
+    <string name="title_z_a">Z → A</string>
+    <string name="words_most">Most Words</string>
+    <string name="words_fewest">Fewest Words</string>
+    <string name="sort_section_date">Date</string>
+    <string name="sort_section_title">Title</string>
+    <string name="sort_section_words">Word Count</string>
     <string name="drafts_only">Drafts only</string>
     <string name="draft_chip">Draft</string>
     <string name="search_posts_placeholder">Search posts…</string>
@@ -146,8 +164,50 @@
     <string name="auto_commit">Auto-commit: %s</string>
     <string name="sync_channel_name">Git Sync</string>
     <string name="sync_channel_desc">Background Hugo blog sync notifications</string>
+    <!-- Auto-sync Worker notification strings -->
+    <string name="sync_in_progress">Syncing…</string>
+    <string name="sync_notification_title">Huga Sync</string>
+    <string name="sync_notification_failed_title">Huga Sync Failed</string>
+    <string name="sync_notification_pulled">Pulled.</string>
+    <string name="sync_notification_pushed">Pushed.</string>
+    <string name="sync_notification_pulled_and_pushed">Pulled &amp; pushed.</string>
+    <string name="sync_already_up_to_date">Already up to date.</string>
+    <string name="sync_complete">Sync complete</string>
+    <string name="error_unknown">Unknown error</string>
+    <!-- SSH key setup -->
+    <string name="ssh_key_generated">Ed25519 key generated</string>
+    <string name="key_generation_failed">Key generation failed: %s</string>
+    <!-- Post management -->
+    <string name="post_create_failed">Failed to create post: %s</string>
+    <string name="post_deleted">Deleted: %s</string>
+    <string name="post_delete_failed">Delete failed: %s</string>
+    <!-- Permission UX -->
+    <string name="notify_silent_warning">Sync will run silently in the background — notifications are disabled</string>
+    <string name="camera_permission_denied_title">Camera access required</string>
+    <string name="camera_permission_denied_body">You have permanently denied camera access. Please enable it in app settings to take photos.</string>
+    <string name="open_system_settings">Open settings</string>
     <string name="sync_success">Sync successful</string>
     <string name="sync_failed">Sync failed</string>
+    <!-- Git operation results -->
+    <string name="pull_success">Pulled ✓</string>
+    <string name="push_success">Committed &amp; pushed ✓</string>
+    <string name="nothing_to_push">Nothing to commit</string>
+    <!-- Git error messages (user-facing, classified) -->
+    <string name="error_auth_not_configured">Auth not configured</string>
+    <string name="error_network">Network error — check your connection and try again</string>
+    <string name="error_auth_ssh">SSH auth failed — verify your deploy key is added to the repository</string>
+    <string name="error_push_rejected">Push rejected — pull first to resolve conflicts</string>
+    <string name="error_clone_failed">Clone failed</string>
+    <!-- Network-op guard strings -->
+    <string name="clone_in_progress_title">Clone in progress</string>
+    <string name="clone_in_progress_body">Cancelling will interrupt the clone and clean up any partial files. Go back anyway?</string>
+    <string name="sync_in_progress_title">Sync in progress</string>
+    <string name="sync_in_progress_body">Cancelling now may leave the operation incomplete. Go back anyway?</string>
+    <string name="partial_clone_title">Incomplete clone detected</string>
+    <string name="partial_clone_body">A previous clone was interrupted. The partial data will be cleaned up so you can start fresh.</string>
+    <string name="cancel_and_go_back">Cancel &amp; go back</string>
+    <string name="keep_waiting">Keep waiting</string>
+    <string name="cleanup_and_retry">Clean up</string>
 
     <!-- ── Setup Screen ──────────────────────────────────────────── -->
     <string name="repository_url">Repository URL</string>
@@ -157,6 +217,9 @@
     <string name="authentication">Authentication</string>
     <string name="pat_auth_label">Personal Access Token (HTTPS)</string>
     <string name="ssh_auth_label">SSH Deploy Key</string>
+    <!-- Risk disclaimer shown at the top of the setup screen -->
+    <string name="risk_disclaimer_title">Use at Your Own Risk</string>
+    <string name="risk_disclaimer_body">This app is experimental. Only SSH Deploy Keys are supported. Always back up your repository before use.</string>
     <string name="personal_access_token">Personal Access Token</string>
     <string name="git_username">Git username</string>
     <string name="ssh_key">SSH Key</string>
@@ -198,6 +261,8 @@
     <string name="repo_url_display">URL: %s</string>
     <string name="repo_local_display">Local: %s</string>
     <string name="disconnect_repository">Disconnect Repository</string>
+    <string name="disconnect_confirm_title">Disconnect Repository?</string>
+    <string name="disconnect_confirm_body">This will delete all local data, SSH keys, and settings. This action cannot be undone.</string>
 
     <!-- ── Appearance / Theme ────────────────────────────────────── -->
     <string name="appearance">Appearance</string>

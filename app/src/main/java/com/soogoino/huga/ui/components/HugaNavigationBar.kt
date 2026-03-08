@@ -4,9 +4,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Article
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -15,7 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.soogoino.huga.R
 
-enum class HugaTab { HOME, POSTS, FILES }
+enum class HugaTab { HOME, POSTS, FILES, SETTINGS }
 
 @Composable
 fun HugaNavigationBar(
@@ -23,6 +25,7 @@ fun HugaNavigationBar(
     onHome: () -> Unit,
     onPosts: () -> Unit,
     onFiles: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     NavigationBar {
         NavigationBarItem(
@@ -57,6 +60,17 @@ fun HugaNavigationBar(
                 )
             },
             label = { Text(stringResource(R.string.files)) },
+        )
+        NavigationBarItem(
+            selected = selected == HugaTab.SETTINGS,
+            onClick = onSettings,
+            icon = {
+                Icon(
+                    if (selected == HugaTab.SETTINGS) Icons.Filled.Settings else Icons.Outlined.Settings,
+                    contentDescription = null,
+                )
+            },
+            label = { Text(stringResource(R.string.settings)) },
         )
     }
 }

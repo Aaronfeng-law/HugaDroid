@@ -2,6 +2,7 @@ package com.soogoino.huga.git
 
 import android.util.Log
 import com.jcraft.jsch.ChannelExec
+import com.soogoino.huga.BuildConfig
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.JSchException
 import com.jcraft.jsch.Session
@@ -42,13 +43,13 @@ class JschSshSessionFactory(
             Log.e(TAG, "No host in URI: $uri")
             throw TransportException(uri, "No host in URI: $uri")
         }
-        Log.d(TAG, "getSession: $user@$host:$port  keyPath=$keyPath")
+        if (BuildConfig.DEBUG) Log.d(TAG, "getSession: $user@$host:$port  keyPath=$keyPath")
 
         try {
             val jsch = JSch()
             val keyFile = File(keyPath)
             if (keyFile.exists()) {
-                Log.d(TAG, "addIdentity: $keyPath (${keyFile.length()} bytes)")
+                if (BuildConfig.DEBUG) Log.d(TAG, "addIdentity: $keyPath (${keyFile.length()} bytes)")
                 jsch.addIdentity(keyPath)
             } else {
                 Log.e(TAG, "Key file not found: $keyPath")
@@ -73,7 +74,7 @@ class JschSshSessionFactory(
             val timeout = if (tmsec > 0) tmsec else 30_000
             Log.d(TAG, "connecting with timeout=${timeout}ms …")
             session.connect(timeout)
-            Log.i(TAG, "Connected to $host:$port as $user (${session.serverVersion})")
+            if (BuildConfig.DEBUG) Log.i(TAG, "Connected to $host:$port as $user (${session.serverVersion})")
             return JschRemoteSession(session)
         } catch (e: JSchException) {
             Log.e(TAG, "JSch auth/connect failure: ${e.message}", e)

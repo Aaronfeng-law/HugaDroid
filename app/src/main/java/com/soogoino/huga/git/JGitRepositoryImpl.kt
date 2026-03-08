@@ -1,6 +1,7 @@
 package com.soogoino.huga.git
 
 import android.util.Log
+import com.soogoino.huga.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.eclipse.jgit.api.Git
@@ -23,7 +24,7 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
             Log.d(TAG, "transportConfigCallback: auth=${auth::class.simpleName} transport=${transport::class.qualifiedName}")
             when (auth) {
                 is GitAuth.SshKey -> {
-                    Log.d(TAG, "SSH key path=${auth.keyPath} exists=${File(auth.keyPath).exists()}")
+                    if (BuildConfig.DEBUG) Log.d(TAG, "SSH key path=${auth.keyPath} exists=${File(auth.keyPath).exists()}")
                     val sshTransport = transport as? SshTransport
                     if (sshTransport == null) {
                         // Transport is NOT SSH — URL is likely still HTTPS; log clearly
@@ -72,36 +73,38 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
         auth: GitAuth,
         onProgress: (Int, String) -> Unit,
     ): GitResult<Unit> = withContext(Dispatchers.IO) {
-        runCatching {
-            Log.i(TAG, "clone  url=$remoteUrl  auth=${auth::class.simpleName}  localPath=$localPath")
-            // Guard: SSH auth requires an SSH-style URL
-            if (auth is GitAuth.SshKey && (remoteUrl.startsWith("https://") || remoteUrl.startsWith("http://"))) {
-                val msg = "SSH auth selected but URL is HTTP/HTTPS: $remoteUrl — convert to SSH URL (git@...) first"
-                Log.e(TAG, msg)
-                error(msg)
-            }
-            val dir = File(localPath)
-            // If the directory already exists (e.g. previous clone / reconnect scenario),
-            // wipe it so JGit doesn't throw "destination path already exists and is not an empty directory".
-            if (dir.exists()) {
-                Log.i(TAG, "clone: target dir exists — deleting before re-clone: $localPath")
-                dir.deleteRecursively()
-            }
-            dir.mkdirs()
-            val cmd = Git.cloneRepository()
-                .setURI(remoteUrl)
-                .setDirectory(dir)
-                .setProgressMonitor(progressMonitor(onProgress))
-                .setTransportConfigCallback(transportConfigCallback(auth))
-            credentialsProvider(auth)?.let { cmd.setCredentialsProvider(it) }
-            cmd.call().close()
-        }.fold(
-            onSuccess = { GitResult.Success(Unit) },
-            onFailure = { e ->
-                Log.e(TAG, "clone failed: ${e::class.simpleName} — ${e.message}", e)
-                GitResult.Failure(e)
-            }
-        )
+        retryOnNetworkError(tag = TAG) {
+            runCatching {
+                if (BuildConfig.DEBUG) Log.i(TAG, "clone  url=$remoteUrl  auth=${auth::class.simpleName}  localPath=$localPath")
+                // Guard: SSH auth requires an SSH-style URL
+                if (auth is GitAuth.SshKey && (remoteUrl.startsWith("https://") || remoteUrl.startsWith("http://"))) {
+                    val msg = "SSH auth selected but URL is HTTP/HTTPS: $remoteUrl — convert to SSH URL (git@...) first"
+                    Log.e(TAG, msg)
+                    error(msg)
+                }
+                val dir = File(localPath)
+                // If the directory already exists (e.g. previous clone / reconnect scenario),
+                // wipe it so JGit doesn't throw "destination path already exists and is not an empty directory".
+                if (dir.exists()) {
+                    Log.i(TAG, "clone: target dir exists — deleting before re-clone: $localPath")
+                    dir.deleteRecursively()
+                }
+                dir.mkdirs()
+                val cmd = Git.cloneRepository()
+                    .setURI(remoteUrl)
+                    .setDirectory(dir)
+                    .setProgressMonitor(progressMonitor(onProgress))
+                    .setTransportConfigCallback(transportConfigCallback(auth))
+                credentialsProvider(auth)?.let { cmd.setCredentialsProvider(it) }
+                cmd.call().close()
+            }.fold(
+                onSuccess = { GitResult.Success(Unit) },
+                onFailure = { e ->
+                    Log.e(TAG, "clone failed: ${e::class.simpleName} — ${e.message}", e)
+                    GitResult.Failure(e)
+                }
+            )
+        }
     }
 
     override suspend fun pull(
@@ -109,21 +112,23 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
         auth: GitAuth,
         onProgress: (Int, String) -> Unit,
     ): GitResult<Unit> = withContext(Dispatchers.IO) {
-        runCatching {
-            Git.open(File(localPath)).use { git ->
-                val cmd = git.pull()
-                    .setProgressMonitor(progressMonitor(onProgress))
-                    .setTransportConfigCallback(transportConfigCallback(auth))
-                credentialsProvider(auth)?.let { cmd.setCredentialsProvider(it) }
-                cmd.call()
-            }
-        }.fold(
-            onSuccess = { GitResult.Success(Unit) },
-            onFailure = { e ->
-                Log.e(TAG, "pull failed", e)
-                GitResult.Failure(e)
-            }
-        )
+        retryOnNetworkError(tag = TAG) {
+            runCatching {
+                Git.open(File(localPath)).use { git ->
+                    val cmd = git.pull()
+                        .setProgressMonitor(progressMonitor(onProgress))
+                        .setTransportConfigCallback(transportConfigCallback(auth))
+                    credentialsProvider(auth)?.let { cmd.setCredentialsProvider(it) }
+                    cmd.call()
+                }
+            }.fold(
+                onSuccess = { GitResult.Success(Unit) },
+                onFailure = { e ->
+                    Log.e(TAG, "pull failed", e)
+                    GitResult.Failure(e)
+                }
+            )
+        }
     }
 
     override suspend fun commitAndPush(
@@ -134,47 +139,55 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
         auth: GitAuth,
         onProgress: (Int, String) -> Unit,
     ): GitResult<Unit> = withContext(Dispatchers.IO) {
-        runCatching {
+        // ── Stage + Commit (local ops, not retried) ───────────────────────────────
+        val commitResult = runCatching {
             Git.open(File(localPath)).use { git ->
-                // Stage additions
                 git.add().addFilepattern(".").call()
-                // Stage deletions (files removed from disk but still tracked)
                 git.add().setUpdate(true).addFilepattern(".").call()
-
-                // Commit
                 val personIdent = org.eclipse.jgit.lib.PersonIdent(authorName, authorEmail)
                 git.commit()
                     .setMessage(message)
                     .setAuthor(personIdent)
                     .setCommitter(personIdent)
                     .call()
+            }
+        }
+        if (commitResult.isFailure) {
+            val e = commitResult.exceptionOrNull()!!
+            Log.e(TAG, "commitAndPush: commit phase failed", e)
+            return@withContext GitResult.Failure(e)
+        }
 
-                // Push
-                val pushCmd = git.push()
-                    .setProgressMonitor(progressMonitor(onProgress))
-                    .setTransportConfigCallback(transportConfigCallback(auth))
-                credentialsProvider(auth)?.let { pushCmd.setCredentialsProvider(it) }
-                val pushResults = pushCmd.call()
-                // Detect remote rejections (JGit encodes them in result, not as exceptions)
-                for (result in pushResults) {
-                    for (update in result.remoteUpdates) {
-                        val status = update.status
-                        if (status == org.eclipse.jgit.transport.RemoteRefUpdate.Status.REJECTED_NONFASTFORWARD ||
-                            status == org.eclipse.jgit.transport.RemoteRefUpdate.Status.REJECTED_REMOTE_CHANGED ||
-                            status == org.eclipse.jgit.transport.RemoteRefUpdate.Status.REJECTED_OTHER_REASON ||
-                            status == org.eclipse.jgit.transport.RemoteRefUpdate.Status.REJECTED_NODELETE) {
-                            throw Exception("Push rejected by remote (${update.remoteName}): ${status.name}")
+        // ── Push (network op, retried up to 3×) ─────────────────────────────────
+        retryOnNetworkError(tag = TAG) {
+            runCatching {
+                Git.open(File(localPath)).use { git ->
+                    val pushCmd = git.push()
+                        .setProgressMonitor(progressMonitor(onProgress))
+                        .setTransportConfigCallback(transportConfigCallback(auth))
+                    credentialsProvider(auth)?.let { pushCmd.setCredentialsProvider(it) }
+                    val pushResults = pushCmd.call()
+                    // Detect remote rejections (JGit encodes them in result, not as exceptions)
+                    for (result in pushResults) {
+                        for (update in result.remoteUpdates) {
+                            val status = update.status
+                            if (status == org.eclipse.jgit.transport.RemoteRefUpdate.Status.REJECTED_NONFASTFORWARD ||
+                                status == org.eclipse.jgit.transport.RemoteRefUpdate.Status.REJECTED_REMOTE_CHANGED ||
+                                status == org.eclipse.jgit.transport.RemoteRefUpdate.Status.REJECTED_OTHER_REASON ||
+                                status == org.eclipse.jgit.transport.RemoteRefUpdate.Status.REJECTED_NODELETE) {
+                                throw Exception("Push rejected by remote (${update.remoteName}): ${status.name}")
+                            }
                         }
                     }
                 }
-            }
-        }.fold(
-            onSuccess = { GitResult.Success(Unit) },
-            onFailure = { e ->
-                Log.e(TAG, "commitAndPush failed", e)
-                GitResult.Failure(e)
-            }
-        )
+            }.fold(
+                onSuccess = { GitResult.Success(Unit) },
+                onFailure = { e ->
+                    Log.e(TAG, "commitAndPush: push phase failed", e)
+                    GitResult.Failure(e)
+                }
+            )
+        }
     }
 
     override suspend fun stageAll(localPath: String): GitResult<Unit> = withContext(Dispatchers.IO) {

@@ -1,5 +1,6 @@
 package com.soogoino.huga.ui.sync
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -34,6 +35,10 @@ fun SyncScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showCommitDialog by remember { mutableStateOf(false) }
+    var showCancelSyncDialog by remember { mutableStateOf(false) }
+
+    // Intercept back press while pull/push is running
+    BackHandler(enabled = uiState.isSyncing) { showCancelSyncDialog = true }
 
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { event ->
@@ -48,7 +53,7 @@ fun SyncScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.git_sync)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateUp) {
+                    IconButton(onClick = { if (uiState.isSyncing) showCancelSyncDialog = true else onNavigateUp() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
@@ -230,6 +235,32 @@ fun SyncScreen(
                 showCommitDialog = false
                 viewModel.commitAndPush(msg)
             }
+        )
+    }
+
+    // ── Cancel-sync confirmation dialog ────────────────────────────────────────
+    if (showCancelSyncDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelSyncDialog = false },
+            title = { Text(stringResource(R.string.sync_in_progress_title)) },
+            text = { Text(stringResource(R.string.sync_in_progress_body)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCancelSyncDialog = false
+                        viewModel.cancelSync()
+                        onNavigateUp()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) { Text(stringResource(R.string.cancel_and_go_back)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCancelSyncDialog = false }) {
+                    Text(stringResource(R.string.keep_waiting))
+                }
+            },
         )
     }
 }

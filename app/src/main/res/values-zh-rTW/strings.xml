@@ -23,6 +23,7 @@
 
     <!-- ── Home / Dashboard ──────────────────────────────────────── -->
     <string name="dashboard">總覽</string>
+    <string name="taxonomy">分類體系</string>
     <string name="published">已發布</string>
     <string name="drafts_count">草稿</string>
     <string name="writing_days">寫作天數</string>
@@ -30,6 +31,9 @@
     <string name="unique_categories">分類數</string>
     <string name="total_words">總字數</string>
     <string name="recent_posts">最新文章</string>
+    <string name="continue_editing">繼續編輯</string>
+    <!-- %d = 草稿總數 -->
+    <string name="view_all_drafts">查看全部 %d 篇草稿</string>
     <string name="pin">置頂</string>
     <string name="unpin">取消置頂</string>
     <string name="working_papers">草稿箱</string>
@@ -71,7 +75,16 @@
     <!-- 媒體插入選單 -->
     <string name="insert_media">插入媒體</string>
     <string name="take_photo">拍照</string>
+    <string name="take_photo_subtitle">使用相機拍照並直接插入</string>
     <string name="pick_from_gallery">從相簿選擇</string>
+    <string name="pick_from_gallery_subtitle">從裝置選擇現有圖片</string>
+    <!-- %s = 檔案名稱 -->
+    <string name="image_inserted">已插入圖片：%s</string>
+    <!-- %s = 錯誤訊息 -->
+    <string name="image_load_failed">圖片載入失敗：%s</string>
+    <string name="image_insert_failed">圖片插入失敗：%s</string>
+    <!-- %s = 文章 slug -->
+    <string name="image_fallback_static">已存至 /static/images/%s/（非 Page Bundle 文章）</string>
 
     <!-- ── Front Matter Tab ──────────────────────────────────────── -->
     <string name="title">標題</string>
@@ -102,7 +115,13 @@
     <string name="search">搜尋</string>
     <string name="newest_first">最新在前</string>
     <string name="oldest_first">最舊在前</string>
-    <string name="title_a_z">標題 A–Z</string>
+    <string name="title_a_z">A → Z</string>
+    <string name="title_z_a">Z → A</string>
+    <string name="words_most">字數最多</string>
+    <string name="words_fewest">字數最少</string>
+    <string name="sort_section_date">日期</string>
+    <string name="sort_section_title">標題</string>
+    <string name="sort_section_words">字數</string>
     <string name="drafts_only">僅草稿</string>
     <string name="draft_chip">草稿</string>
     <string name="search_posts_placeholder">搜尋文章…</string>
@@ -135,6 +154,8 @@
     <string name="scroll_to_top">回到頂部</string>
     <!-- %d = 數量 -->
     <string name="pending_changes">%d 個待處理變更</string>
+    <string name="checking_status">正在確認變更…</string>
+    <string name="no_local_changes">無本機變更</string>
     <!-- %d = 超出數量 -->
     <string name="and_more">…以及其他 %d 個</string>
     <!-- %d = 數量 -->
@@ -144,8 +165,50 @@
     <string name="auto_commit">自動 commit：%s</string>
     <string name="sync_channel_name">Git 同步</string>
     <string name="sync_channel_desc">Hugo 部落格背景同步通知</string>
+    <!-- 自動同步 Worker 通知字串 -->
+    <string name="sync_in_progress">同步中…</string>
+    <string name="sync_notification_title">Huga 同步</string>
+    <string name="sync_notification_failed_title">Huga 同步失敗</string>
+    <string name="sync_notification_pulled">已 Pull。</string>
+    <string name="sync_notification_pushed">已 Push。</string>
+    <string name="sync_notification_pulled_and_pushed">已 Pull &amp; Push。</string>
+    <string name="sync_already_up_to_date">已是最新版本。</string>
+    <string name="sync_complete">同步完成</string>
+    <string name="error_unknown">發生未知錯誤</string>
+    <!-- SSH 金鑰設定 -->
+    <string name="ssh_key_generated">已產生 Ed25519 金鑰</string>
+    <string name="key_generation_failed">金鑰產生失敗：%s</string>
+    <!-- 文章管理 -->
+    <string name="post_create_failed">無法建立文章：%s</string>
+    <string name="post_deleted">已删除：%s</string>
+    <string name="post_delete_failed">删除失敗：%s</string>
+    <!-- 權限提示 UI -->
+    <string name="notify_silent_warning">同步將在背景靜默執行——通知功能已關閉</string>
+    <string name="camera_permission_denied_title">需要相機存取權限</string>
+    <string name="camera_permission_denied_body">您已永久拒絕相機權限。請到應用程式設定中開啟權限，才能拍照。</string>
+    <string name="open_system_settings">開啟設定</string>
     <string name="sync_success">同步成功</string>
     <string name="sync_failed">同步失敗</string>
+    <!-- Git 操作結果 -->
+    <string name="pull_success">已 Pull ✓</string>
+    <string name="push_success">已 Commit &amp; Push ✓</string>
+    <string name="nothing_to_push">沒有需要提交的變更</string>
+    <!-- Git 錯誤訊息（使用者可見） -->
+    <string name="error_auth_not_configured">尚未設定驗證方式</string>
+    <string name="error_network">網路錯誤——請確認連線後重試</string>
+    <string name="error_auth_ssh">SSH 驗證失敗——請確認 Deploy Key 已新增至儲存庫</string>
+    <string name="error_push_rejected">Push 被封鎖——請先 Pull 以解決衝突</string>
+    <string name="error_clone_failed">Clone 失敗</string>
+    <!-- 網路作業防護字串 -->
+    <string name="clone_in_progress_title">Clone 進行中</string>
+    <string name="clone_in_progress_body">取消將中斷 Clone 並清除已下載的部分檔案。確定要返回嗎？</string>
+    <string name="sync_in_progress_title">同步進行中</string>
+    <string name="sync_in_progress_body">現在取消可能導致操作未完成。確定要返回嗎？</string>
+    <string name="partial_clone_title">偵測到未完成的 Clone</string>
+    <string name="partial_clone_body">上次的 Clone 未正常結束，將清除殘留資料以便重新開始。</string>
+    <string name="cancel_and_go_back">取消並返回</string>
+    <string name="keep_waiting">繼續等待</string>
+    <string name="cleanup_and_retry">清除</string>
 
     <!-- ── Setup Screen ──────────────────────────────────────────── -->
     <string name="repository_url">儲存庫 URL</string>
@@ -155,6 +218,9 @@
     <string name="authentication">驗證方式</string>
     <string name="pat_auth_label">Personal Access Token（HTTPS）</string>
     <string name="ssh_auth_label">SSH Deploy Key</string>
+    <!-- 設定頁頂部風險免責聲明 -->
+    <string name="risk_disclaimer_title">請自行承擔風險</string>
+    <string name="risk_disclaimer_body">本 App 為實驗性質。目前僅支援 SSH Deploy Key 驗證。使用前請務必備份您的儲存庫。</string>
     <string name="personal_access_token">Personal Access Token</string>
     <string name="git_username">Git 使用者名稱</string>
     <string name="ssh_key">SSH 金鑰</string>
@@ -196,6 +262,8 @@
     <string name="repo_url_display">URL：%s</string>
     <string name="repo_local_display">本機：%s</string>
     <string name="disconnect_repository">中斷儲存庫連結</string>
+    <string name="disconnect_confirm_title">中斷儲存庫連結？</string>
+    <string name="disconnect_confirm_body">這將刪除所有本機資料、SSH 金鑰和設定，此操作無法復原。</string>
 
     <!-- ── Appearance / Theme ────────────────────────────────────── -->
     <string name="appearance">外觀</string>
@@ -241,4 +309,5 @@
     <string name="delete_selected_originals_confirmation">已轉換 %d 張圖片。要刪除原始檔案嗎？</string>
     <!-- %1$d = 已轉換數, %2$d = 略過數 -->
     <string name="delete_selected_originals_and_skipped">已轉換 %1$d 張，略過 %2$d 張。要刪除已轉換的原始檔案嗎？</string>
+    <string name="keep">保留</string>
 </resources>

@@ -31,6 +31,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -89,6 +90,10 @@ fun EditorScreen(
     var captureUri by remember { mutableStateOf<android.net.Uri?>(null) }
     // Pending URI waiting for permission
     var pendingCaptureUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    // True once the user has been asked at least once (distinguishes "never asked" from "permanently denied")
+    var hasRequestedCameraPermission by rememberSaveable { mutableStateOf(false) }
+    // True when user has permanently denied camera — triggers dialog
+    var showCameraPermDeniedDialog by remember { mutableStateOf(false) }
 
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
@@ -103,6 +108,7 @@ fun EditorScreen(
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
+        hasRequestedCameraPermission = true
         if (granted) {
             // Permission just granted — launch camera with the prepared URI
             pendingCaptureUri?.let { uri ->
@@ -112,6 +118,12 @@ fun EditorScreen(
             }
         } else {
             pendingCaptureUri = null
+            // If the system won't show a rationale, the user ticked "Don't ask again"
+            val activity = context as? android.app.Activity
+            val isPermanentlyDenied = activity?.let {
+                !ActivityCompat.shouldShowRequestPermissionRationale(it, android.Manifest.permission.CAMERA)
+            } ?: false
+            if (isPermanentlyDenied) showCameraPermDeniedDialog = true
         }
     }
 
@@ -135,11 +147,26 @@ fun EditorScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = uiState.frontMatter.title.ifBlank { stringResource(R.string.untitled) },
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = uiState.frontMatter.title.ifBlank { stringResource(R.string.untitled) },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        // Unsaved indicator — a small dot next to the title, much more visible
+                        // than the previous 12dp icon buried in the action bar.
+                        if (uiState.saveState == SaveState.UNSAVED) {
+                            Text(
+                                text = " ●",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.forceSave(); onNavigateUp() }) {
@@ -147,14 +174,8 @@ fun EditorScreen(
                     }
                 },
                 actions = {
-                    // Save state indicator
+                    // Save state: show spinner while saving, check when saved; unsaved dot is in title.
                     when (uiState.saveState) {
-                        SaveState.UNSAVED -> Icon(
-                            Icons.Filled.FiberManualRecord,
-                            contentDescription = stringResource(R.string.unsaved_changes),
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(12.dp).padding(4.dp)
-                        )
                         SaveState.SAVING -> CircularProgressIndicator(Modifier.size(16.dp).padding(4.dp), strokeWidth = 2.dp)
                         SaveState.SAVED -> Icon(
                             Icons.Filled.Check,
@@ -162,6 +183,7 @@ fun EditorScreen(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
+                        SaveState.UNSAVED -> {} // dot shown in title
                     }
 
                     // Zoom in / zoom out (Content + Preview tabs)
@@ -300,6 +322,28 @@ fun EditorScreen(
         )
     }
 
+    // Camera permission permanently-denied dialog
+    if (showCameraPermDeniedDialog) {
+        AlertDialog(
+            onDismissRequest = { showCameraPermDeniedDialog = false },
+            title = { Text(stringResource(R.string.camera_permission_denied_title)) },
+            text = { Text(stringResource(R.string.camera_permission_denied_body)) },
+            confirmButton = {
+                Button(onClick = {
+                    showCameraPermDeniedDialog = false
+                    val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        .apply { data = android.net.Uri.fromParts("package", context.packageName, null) }
+                    context.startActivity(intent)
+                }) { Text(stringResource(R.string.open_system_settings)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCameraPermDeniedDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+
     // Media insert bottom sheet
     if (uiState.showMediaSheet) {
         MediaInsertSheet(
@@ -311,14 +355,23 @@ fun EditorScreen(
                 }
                 val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile)
                 val cameraPermission = android.Manifest.permission.CAMERA
-                if (ContextCompat.checkSelfPermission(context, cameraPermission) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-                ) {
-                    captureUri = uri
-                    takePictureLauncher.launch(uri)
-                } else {
-                    pendingCaptureUri = uri
-                    cameraPermissionLauncher.launch(cameraPermission)
+                val activity = context as? android.app.Activity
+                when {
+                    ContextCompat.checkSelfPermission(context, cameraPermission) ==
+                        android.content.pm.PackageManager.PERMISSION_GRANTED -> {
+                        captureUri = uri
+                        takePictureLauncher.launch(uri)
+                    }
+                    // Permanently denied: user ticked "Don't ask again" on a previous request
+                    hasRequestedCameraPermission && activity?.let {
+                        !ActivityCompat.shouldShowRequestPermissionRationale(it, cameraPermission)
+                    } == true -> {
+                        showCameraPermDeniedDialog = true
+                    }
+                    else -> {
+                        pendingCaptureUri = uri
+                        cameraPermissionLauncher.launch(cameraPermission)
+                    }
                 }
             },
             onPickGallery = {

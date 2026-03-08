@@ -99,7 +99,9 @@ class HomeViewModel @Inject constructor(
                         uniqueTags = tags,
                         uniqueCategories = cats,
                         totalWords = totalWords,
-                        draftPosts = drafts,
+                        // Show at most 2 drafts in the "Continue Editing" section;
+                        // draftCount (above) holds the full total for the stat grid + "View all" button.
+                        draftPosts = drafts.take(2),
                         recentPosts = recentPosts,
                     )
                 }
@@ -137,8 +139,8 @@ class HomeViewModel @Inject constructor(
 @Composable
 fun HomeScreen(
     onNavigateToSync: () -> Unit,
-    onNavigateToSettings: () -> Unit,
     onNavigateToSetup: () -> Unit,
+    onNavigateToPosts: () -> Unit,
     onOpenPost: (filePath: String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -161,9 +163,6 @@ fun HomeScreen(
                         }) {
                             Icon(Icons.Outlined.Sync, contentDescription = stringResource(R.string.sync))
                         }
-                    }
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings))
                     }
                 },
             )
@@ -192,36 +191,31 @@ fun HomeScreen(
                     StatGrid(uiState)
                 }
 
-                // Recent Posts section
-                if (uiState.recentPosts.isNotEmpty()) {
-                    item {
-                        Text(
-                            stringResource(R.string.recent_posts),
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                        )
-                    }
-                    items(uiState.recentPosts, key = { "recent_${it.filePath}" }) { post ->
-                        RecentPostCard(post = post, onClick = { onOpenPost(post.filePath) })
-                    }
-                }
-
-                // Working Papers header
+                // Continue Editing — max 2 drafts
                 item {
                     Text(
-                        stringResource(R.string.working_papers),
+                        stringResource(R.string.continue_editing),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
                     )
                 }
 
                 if (uiState.draftPosts.isEmpty()) {
-                    item {
-                        NoDraftsCard()
-                    }
+                    item { NoDraftsCard() }
                 } else {
                     items(uiState.draftPosts, key = { it.filePath }) { post ->
                         DraftCard(post = post, onClick = { onOpenPost(post.filePath) })
+                    }
+                    // "View all" button when total drafts exceed 2
+                    if (uiState.draftCount > 2) {
+                        item {
+                            TextButton(
+                                onClick = onNavigateToPosts,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(stringResource(R.string.view_all_drafts, uiState.draftCount))
+                            }
+                        }
                     }
                 }
 

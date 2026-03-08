@@ -9,7 +9,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.soogoino.huga.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,7 +32,7 @@ fun MediaInsertSheet(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                "Insert Image",
+                stringResource(R.string.insert_media),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(vertical = 8.dp),
             )
@@ -38,15 +40,15 @@ fun MediaInsertSheet(
 
             MediaOption(
                 icon = { Icon(Icons.Outlined.CameraAlt, contentDescription = null, modifier = Modifier.size(32.dp)) },
-                title = "Take Photo",
-                subtitle = "Capture with camera and insert directly",
+                title = stringResource(R.string.take_photo),
+                subtitle = stringResource(R.string.take_photo_subtitle),
                 onClick = onTakePhoto,
             )
 
             MediaOption(
                 icon = { Icon(Icons.Outlined.PhotoLibrary, contentDescription = null, modifier = Modifier.size(32.dp)) },
-                title = "Pick from Gallery",
-                subtitle = "Choose an existing image from your device",
+                title = stringResource(R.string.pick_from_gallery),
+                subtitle = stringResource(R.string.pick_from_gallery_subtitle),
                 onClick = onPickGallery,
             )
 

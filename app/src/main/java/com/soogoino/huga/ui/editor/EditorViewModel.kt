@@ -10,6 +10,7 @@ import com.soogoino.huga.data.model.FrontMatterFormat
 import com.soogoino.huga.data.model.FrontMatterParser
 import com.soogoino.huga.data.model.HugoFrontMatter
 import com.soogoino.huga.data.model.HugoPost
+import com.soogoino.huga.R
 import com.soogoino.huga.data.prefs.AppPreferences
 import com.soogoino.huga.data.prefs.MediaStrategy
 import com.soogoino.huga.domain.ReadPostUseCase
@@ -193,7 +194,7 @@ class EditorViewModel @Inject constructor(
                 }
             }.onFailure { e ->
                 withContext(Dispatchers.Main) {
-                    _events.emit(EditorEvent.ShowSnackbar("Image load failed: ${e.message}"))
+                    _events.emit(EditorEvent.ShowSnackbar(context.getString(R.string.image_load_failed, e.message)))
                 }
             }
         }
@@ -212,7 +213,14 @@ class EditorViewModel @Inject constructor(
                     .ifBlank { pending.suggestedFilename.removeSuffix(".jpg") }
                     .let { if (it.endsWith(".jpg", ignoreCase = true)) it else "$it.jpg" }
 
-                val destFile = when (settings.mediaStrategy) {
+                // If the global strategy is PAGE_BUNDLE but the post is not actually a bundle
+                // (i.e. it's a bare .md file like my-post.md rather than my-post/index.md),
+                // fall back to STATIC_FOLDER so the image lands in /static/images/<slug>/
+                // instead of being dumped into the parent sections directory (content/posts/).
+                val isFallback = settings.mediaStrategy == MediaStrategy.PAGE_BUNDLE && !post.isPageBundle
+                val effectiveStrategy = if (isFallback) MediaStrategy.STATIC_FOLDER else settings.mediaStrategy
+
+                val destFile = when (effectiveStrategy) {
                     MediaStrategy.PAGE_BUNDLE -> {
                         val bundleDir = File(post.filePath).parentFile
                             ?: return@runCatching  // STB-02: graceful null guard
@@ -225,7 +233,7 @@ class EditorViewModel @Inject constructor(
                 }
                 destFile.writeBytes(pending.bytes)
 
-                val mdRef = when (settings.mediaStrategy) {
+                val mdRef = when (effectiveStrategy) {
                     MediaStrategy.PAGE_BUNDLE -> "![$altText]($safeFilename)"
                     MediaStrategy.STATIC_FOLDER -> "![$altText](/images/${post.slug}/$safeFilename)"
                 }
@@ -238,12 +246,15 @@ class EditorViewModel @Inject constructor(
                 withContext(Dispatchers.Main) {
                     _uiState.update { it.copy(bodyText = newBody, pendingImage = null, saveState = SaveState.UNSAVED) }
                     _contentFlow.value = serialiseCurrent()
-                    _events.emit(EditorEvent.ShowSnackbar("Image inserted: $safeFilename"))
+                    _events.emit(EditorEvent.ShowSnackbar(context.getString(R.string.image_inserted, safeFilename)))
+                    if (isFallback) {
+                        _events.emit(EditorEvent.ShowSnackbar(context.getString(R.string.image_fallback_static, post.slug)))
+                    }
                 }
             }.onFailure { e ->
                 withContext(Dispatchers.Main) {
                     _uiState.update { it.copy(pendingImage = null) }
-                    _events.emit(EditorEvent.ShowSnackbar("Image insert failed: ${e.message}"))
+                    _events.emit(EditorEvent.ShowSnackbar(context.getString(R.string.image_insert_failed, e.message)))
                 }
             }
         }

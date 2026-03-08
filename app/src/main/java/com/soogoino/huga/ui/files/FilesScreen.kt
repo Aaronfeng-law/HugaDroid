@@ -281,7 +281,6 @@ class FilesViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilesScreen(
-    onNavigateToSettings: () -> Unit,
     onNavigateToSetup: () -> Unit,
     onOpenFile: (filePath: String) -> Unit,
     viewModel: FilesViewModel = hiltViewModel(),
@@ -471,9 +470,6 @@ fun FilesScreen(
                                     enabled = uiState.clipboardCount > 0,
                                 )
                             }
-                        }
-                        IconButton(onClick = onNavigateToSettings) {
-                            Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings))
                         }
                     }
                 },

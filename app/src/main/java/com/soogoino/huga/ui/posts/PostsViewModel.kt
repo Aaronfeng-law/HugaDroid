@@ -1,12 +1,17 @@
 package com.soogoino.huga.ui.posts
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.soogoino.huga.R
 import com.soogoino.huga.data.model.HugoPost
 import com.soogoino.huga.data.prefs.AppPreferences
 import com.soogoino.huga.domain.*
 import com.soogoino.huga.git.GitRepository
+import com.soogoino.huga.git.isAuthError
+import com.soogoino.huga.git.isNetworkError
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.first
@@ -15,7 +20,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
-enum class SortOrder { DATE_DESC, DATE_ASC, TITLE_ASC }
+enum class SortOrder { DATE_DESC, DATE_ASC, TITLE_ASC, TITLE_DESC, WORDS_DESC, WORDS_ASC }
 
 data class PostsUiState(
     val posts: List<HugoPost> = emptyList(),
@@ -50,6 +55,7 @@ private data class FilterKey(
 
 @HiltViewModel
 class PostsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val observePostsUseCase: ObservePostsUseCase,
     private val scanPostsUseCase: ScanPostsUseCase,
     private val createPostUseCase: CreatePostUseCase,
@@ -123,7 +129,7 @@ class PostsViewModel @Inject constructor(
                     _events.emit(PostsEvent.NavigateToEditor(filePath))
                 }
                 .onFailure { e ->
-                    _events.emit(PostsEvent.ShowSnackbar("Failed: ${e.message}"))
+                    _events.emit(PostsEvent.ShowSnackbar(context.getString(R.string.post_create_failed, e.message ?: "")))
                 }
         }
     }
@@ -131,8 +137,8 @@ class PostsViewModel @Inject constructor(
     fun deletePost(post: HugoPost) {
         viewModelScope.launch {
             runCatching { deletePostUseCase(post.filePath) }
-                .onSuccess { _events.emit(PostsEvent.ShowSnackbar("Deleted: ${post.frontMatter.title}")) }
-                .onFailure { e -> _events.emit(PostsEvent.ShowSnackbar("Delete failed: ${e.message}")) }
+                .onSuccess { _events.emit(PostsEvent.ShowSnackbar(context.getString(R.string.post_deleted, post.frontMatter.title))) }
+                .onFailure { e -> _events.emit(PostsEvent.ShowSnackbar(context.getString(R.string.post_delete_failed, e.message ?: ""))) }
         }
     }
 
@@ -146,10 +152,17 @@ class PostsViewModel @Inject constructor(
                 }
             )
             val msg = when {
-                result.error != null -> "Sync failed: ${result.error.message}"
-                result.pushed -> "Pushed ✓"
-                result.pulled -> "Already up to date"
-                else -> "Sync complete"
+                result.error != null -> {
+                    val e = result.error
+                    when {
+                        isNetworkError(e) -> context.getString(R.string.error_network)
+                        isAuthError(e) -> context.getString(R.string.error_auth_ssh)
+                        else -> e.message ?: context.getString(R.string.sync_failed)
+                    }
+                }
+                result.pushed -> context.getString(R.string.push_success)
+                result.pulled -> context.getString(R.string.pull_success)
+                else -> context.getString(R.string.sync_complete)
             }
             _uiState.update { it.copy(isSyncing = false, syncProgress = 0, syncTask = "") }
             _events.emit(PostsEvent.ShowSnackbar(msg))
@@ -199,9 +212,12 @@ class PostsViewModel @Inject constructor(
                     }
                 }
                 val sorted = when (key.sortOrder) {
-                    SortOrder.DATE_DESC -> list.sortedByDescending { it.frontMatter.date }
-                    SortOrder.DATE_ASC  -> list.sortedBy { it.frontMatter.date }
-                    SortOrder.TITLE_ASC -> list.sortedBy { it.frontMatter.title.lowercase() }
+                    SortOrder.DATE_DESC  -> list.sortedByDescending { it.frontMatter.date }
+                    SortOrder.DATE_ASC   -> list.sortedBy { it.frontMatter.date }
+                    SortOrder.TITLE_ASC  -> list.sortedBy { it.frontMatter.title.lowercase() }
+                    SortOrder.TITLE_DESC -> list.sortedByDescending { it.frontMatter.title.lowercase() }
+                    SortOrder.WORDS_DESC -> list.sortedByDescending { it.wordCount }
+                    SortOrder.WORDS_ASC  -> list.sortedBy { it.wordCount }
                 }
                 val (pinned, unpinned) = sorted.partition { it.filePath in key.pinnedFilePaths }
                 pinned + unpinned

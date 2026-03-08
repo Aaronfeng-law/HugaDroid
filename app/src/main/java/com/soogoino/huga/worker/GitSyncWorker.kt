@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
 import com.soogoino.huga.R
@@ -25,24 +26,34 @@ class GitSyncWorker @AssistedInject constructor(
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        setForeground(createForegroundInfo("Syncing…"))
+        // Guard: only call setForeground() when POST_NOTIFICATIONS is granted on API 33+.
+        // Without it, posting the mandatory foreground notification would silently fail
+        // (ForegroundServiceStartNotAllowedException on some OEM firmwares).
+        val canNotify = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                applicationContext, android.Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else true
+        if (canNotify) setForeground(createForegroundInfo(applicationContext.getString(R.string.sync_in_progress)))
 
-        val result = syncRepoUseCase(commitMessage = "Auto-sync: ${java.time.Instant.now()}")
+        val result = syncRepoUseCase(commitMessage = applicationContext.getString(R.string.auto_commit, java.time.Instant.now().toString()))
 
         return if (result.error == null) {
+            val text = when {
+                result.pulled && result.pushed -> applicationContext.getString(R.string.sync_notification_pulled_and_pushed)
+                result.pulled  -> applicationContext.getString(R.string.sync_notification_pulled)
+                result.pushed  -> applicationContext.getString(R.string.sync_notification_pushed)
+                else           -> applicationContext.getString(R.string.sync_already_up_to_date)
+            }
             showNotification(
-                title = "Huga Sync",
-                text = buildString {
-                    if (result.pulled) append("Pulled. ")
-                    if (result.pushed) append("Pushed.")
-                    if (!result.pulled && !result.pushed) append("Already up to date.")
-                },
+                title = applicationContext.getString(R.string.sync_notification_title),
+                text = text,
                 isError = false,
             )
             Result.success()
         } else {
-            val msg = result.error.message ?: "Unknown error"
-            showNotification("Huga Sync Failed", msg, isError = true)
+            val msg = result.error.message ?: applicationContext.getString(R.string.error_unknown)
+            showNotification(applicationContext.getString(R.string.sync_notification_failed_title), msg, isError = true)
             if (runAttemptCount < 3) Result.retry() else Result.failure()
         }
     }
@@ -50,7 +61,7 @@ class GitSyncWorker @AssistedInject constructor(
     private fun createForegroundInfo(progress: String): ForegroundInfo {
         createNotificationChannel()
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setContentTitle("Huga")
+            .setContentTitle(applicationContext.getString(R.string.app_name))
             .setContentText(progress)
             .setSmallIcon(android.R.drawable.ic_menu_upload)
             .setOngoing(true)
