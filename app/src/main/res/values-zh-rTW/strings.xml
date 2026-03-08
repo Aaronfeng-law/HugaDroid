@@ -197,8 +197,10 @@
     <string name="error_auth_not_configured">尚未設定驗證方式</string>
     <string name="error_network">網路錯誤——請確認連線後重試</string>
     <string name="error_auth_ssh">SSH 驗證失敗——請確認 Deploy Key 已新增至儲存庫</string>
-    <string name="error_push_rejected">Push 被封鎖——請先 Pull 以解決衝突</string>
+    <string name="error_push_rejected">Push 被遠端拒絕 — 請先 Pull 以解決衝突</string>
     <string name="error_clone_failed">Clone 失敗</string>
+    <string name="error_author_name_missing">尚未設定作者名稱 — 請先至設定頁填寫後再同步</string>
+    <string name="error_author_email_missing">尚未設定作者 Email — 請先至設定頁填寫後再同步</string>
     <!-- 網路作業防護字串 -->
     <string name="clone_in_progress_title">Clone 進行中</string>
     <string name="clone_in_progress_body">取消將中斷 Clone 並清除已下載的部分檔案。確定要返回嗎？</string>

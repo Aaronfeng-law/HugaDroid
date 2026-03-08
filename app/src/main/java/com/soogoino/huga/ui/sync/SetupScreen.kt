@@ -333,7 +333,7 @@ fun SetupScreen(
                             OutlinedButton(
                                 onClick = {
                                     val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    cm.setPrimaryClip(ClipData.newPlainText("ssh pub key", uiState.sshPublicKey))
+                                    cm.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.public_key), uiState.sshPublicKey))
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                             ) {

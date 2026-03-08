@@ -162,6 +162,8 @@ class SyncViewModel @Inject constructor(
     private fun gitErrorMessage(e: Throwable): String = when {
         isNetworkError(e) -> context.getString(R.string.error_network)
         isAuthError(e) -> context.getString(R.string.error_auth_ssh)
+        e.message == "author_name_missing" -> context.getString(R.string.error_author_name_missing)
+        e.message == "author_email_missing" -> context.getString(R.string.error_author_email_missing)
         e.message?.startsWith("Push rejected") == true -> context.getString(R.string.error_push_rejected)
         else -> e.message ?: context.getString(R.string.sync_failed)
     }

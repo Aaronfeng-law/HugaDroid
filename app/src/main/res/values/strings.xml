@@ -198,6 +198,8 @@
     <string name="error_auth_ssh">SSH auth failed — verify your deploy key is added to the repository</string>
     <string name="error_push_rejected">Push rejected — pull first to resolve conflicts</string>
     <string name="error_clone_failed">Clone failed</string>
+    <string name="error_author_name_missing">Author name is required — fill it in Settings before syncing</string>
+    <string name="error_author_email_missing">Author email is required — fill it in Settings before syncing</string>
     <!-- Network-op guard strings -->
     <string name="clone_in_progress_title">Clone in progress</string>
     <string name="clone_in_progress_body">Cancelling will interrupt the clone and clean up any partial files. Go back anyway?</string>

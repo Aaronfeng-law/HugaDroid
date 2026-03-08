@@ -98,10 +98,13 @@ class SyncRepoUseCase @Inject constructor(
         var pushed = false
         if (gitRepository.hasLocalChanges(repoPath)) {
             val msg = commitMessage ?: "Auto-sync: ${java.time.Instant.now()}"
+            // Author info is required — caller must ensure it is configured before syncing
+            val authorName = settings.authorName.ifBlank { return SyncResult(false, false, IllegalStateException("author_name_missing")) }
+            val authorEmail = settings.authorEmail.ifBlank { return SyncResult(false, false, IllegalStateException("author_email_missing")) }
             val pushResult = gitRepository.commitAndPush(
                 repoPath, msg,
-                settings.authorName.ifBlank { "Huga" },
-                settings.authorEmail.ifBlank { "huga@mobile" },
+                authorName,
+                authorEmail,
                 auth, onProgress,
             )
             pushed = pushResult is GitResult.Success

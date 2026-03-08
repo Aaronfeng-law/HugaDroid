@@ -157,6 +157,8 @@ class PostsViewModel @Inject constructor(
                     when {
                         isNetworkError(e) -> context.getString(R.string.error_network)
                         isAuthError(e) -> context.getString(R.string.error_auth_ssh)
+                        e.message == "author_name_missing" -> context.getString(R.string.error_author_name_missing)
+                        e.message == "author_email_missing" -> context.getString(R.string.error_author_email_missing)
                         else -> e.message ?: context.getString(R.string.sync_failed)
                     }
                 }
