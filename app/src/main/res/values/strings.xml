@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Huga</string>
+    <string name="app_name">HugaDroid</string>
 
     <!-- ── Common ─────────────────────────────────────────────────── -->
     <string name="cancel">Cancel</string>
@@ -166,8 +166,8 @@
     <string name="sync_channel_desc">Background Hugo blog sync notifications</string>
     <!-- Auto-sync Worker notification strings -->
     <string name="sync_in_progress">Syncing…</string>
-    <string name="sync_notification_title">Huga Sync</string>
-    <string name="sync_notification_failed_title">Huga Sync Failed</string>
+    <string name="sync_notification_title">HugaDroid Sync</string>
+    <string name="sync_notification_failed_title">HugaDroid Sync Failed</string>
     <string name="sync_notification_pulled">Pulled.</string>
     <string name="sync_notification_pushed">Pushed.</string>
     <string name="sync_notification_pulled_and_pushed">Pulled &amp; pushed.</string>

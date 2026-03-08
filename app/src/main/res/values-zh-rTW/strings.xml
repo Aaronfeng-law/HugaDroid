@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Huga</string>
+    <string name="app_name">HugaDroid</string>
 
     <!-- ── Common ─────────────────────────────────────────────────── -->
     <string name="cancel">取消</string>
@@ -167,8 +167,8 @@
     <string name="sync_channel_desc">Hugo 部落格背景同步通知</string>
     <!-- 自動同步 Worker 通知字串 -->
     <string name="sync_in_progress">同步中…</string>
-    <string name="sync_notification_title">Huga 同步</string>
-    <string name="sync_notification_failed_title">Huga 同步失敗</string>
+    <string name="sync_notification_title">HugaDroid 同步</string>
+    <string name="sync_notification_failed_title">HugaDroid 同步失敗</string>
     <string name="sync_notification_pulled">已 Pull。</string>
     <string name="sync_notification_pushed">已 Push。</string>
     <string name="sync_notification_pulled_and_pushed">已 Pull &amp; Push。</string>

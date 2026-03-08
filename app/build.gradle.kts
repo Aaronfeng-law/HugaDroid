@@ -10,11 +10,11 @@ plugins {
 }
 
 android {
-    namespace = "com.soogoino.huga"
+    namespace = "com.soogoino.hugadroid"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.soogoino.huga"
+        applicationId = "com.soogoino.hugadroid"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
