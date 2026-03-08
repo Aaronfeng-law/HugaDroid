@@ -49,3 +49,9 @@ frontmatter.json
 .frontmatter/
 
 .github/prompt
+local.properties
+# Gradle caches / build state (machine-specific, not useful in VCS)
+.gradle/
+# Android keystores — never commit signing keys
+*.jks
+*.keystore
