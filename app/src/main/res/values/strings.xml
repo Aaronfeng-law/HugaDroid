@@ -221,7 +221,7 @@
     <string name="ssh_auth_label">SSH Deploy Key</string>
     <!-- Risk disclaimer shown at the top of the setup screen -->
     <string name="risk_disclaimer_title">Use at Your Own Risk</string>
-    <string name="risk_disclaimer_body">This app is experimental. Only SSH Deploy Keys are supported. Always back up your repository before use.</string>
+    <string name="risk_disclaimer_body">This app will modify your repository. Only SSH Deploy Keys are supported. Always back up your repository before use.</string>
     <string name="personal_access_token">Personal Access Token</string>
     <string name="git_username">Git username</string>
     <string name="ssh_key">SSH Key</string>

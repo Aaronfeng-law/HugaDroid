@@ -222,7 +222,7 @@
     <string name="ssh_auth_label">SSH Deploy Key</string>
     <!-- 設定頁頂部風險免責聲明 -->
     <string name="risk_disclaimer_title">請自行承擔風險</string>
-    <string name="risk_disclaimer_body">本 App 為實驗性質。目前僅支援 SSH Deploy Key 驗證。使用前請務必備份您的儲存庫。</string>
+    <string name="risk_disclaimer_body">本 App 會影響您的儲存庫。目前僅支援 SSH Deploy Key 驗證。使用前請務必備份您的儲存庫。</string>
     <string name="personal_access_token">Personal Access Token</string>
     <string name="git_username">Git 使用者名稱</string>
     <string name="ssh_key">SSH 金鑰</string>
