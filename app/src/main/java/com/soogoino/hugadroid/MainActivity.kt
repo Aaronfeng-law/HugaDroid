@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
             // Read from plain SharedPreferences — synchronous and ANR-safe.
             // (DataStore is async; DataStore access via runBlocking risks ANR in early lifecycle.)
             val tag = newBase
-                .getSharedPreferences("huga_lang", android.content.Context.MODE_PRIVATE)
+                .getSharedPreferences("hugadroid_lang", android.content.Context.MODE_PRIVATE)
                 .getString("app_language", "") ?: ""
             if (tag.isNotEmpty()) {
                 val locale = Locale.forLanguageTag(tag)

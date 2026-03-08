@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "huga_prefs")
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "hugadroid_prefs")
 
 enum class AuthType { PAT, SSH }
 enum class MediaStrategy { PAGE_BUNDLE, STATIC_FOLDER }
