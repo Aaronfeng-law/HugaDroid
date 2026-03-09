@@ -319,7 +319,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 Built with:
-- [JGit](https://www.eclipse.org/jgit/) by Eclipse Foundation
+- [JGit](https://github.com/eclipse-jgit/jgit) by Eclipse Foundation
 - [JSch](https://github.com/mwiede/jsch) fork by mwiede
 - [RichEditor Compose](https://github.com/MohamedRejeb/Compose-Rich-Editor) by MohamedRejeb
 - [Coil](https://coil-kt.github.io/coil/) image loading library

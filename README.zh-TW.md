@@ -319,7 +319,7 @@ KEY_PASSWORD=your_key_password
 ## 致謝
 
 本專案使用以下開源專案：
-- Eclipse Foundation 的 [JGit](https://www.eclipse.org/jgit/)
+- Eclipse Foundation 的 [JGit](https://github.com/eclipse-jgit/jgit)
 - mwiede 的 [JSch](https://github.com/mwiede/jsch) fork
 - MohamedRejeb 的 [RichEditor Compose](https://github.com/MohamedRejeb/Compose-Rich-Editor)
 - [Coil](https://coil-kt.github.io/coil/) 圖片載入函式庫
