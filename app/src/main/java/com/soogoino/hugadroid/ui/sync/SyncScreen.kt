@@ -36,6 +36,9 @@ fun SyncScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showCommitDialog by remember { mutableStateOf(false) }
     var showCancelSyncDialog by remember { mutableStateOf(false) }
+    var showDiscardDialog by remember { mutableStateOf(false) }
+    var showForceResetDialog by remember { mutableStateOf(false) }
+    var showPullWarningDialog by remember { mutableStateOf(false) }
 
     // Intercept back press while pull/push is running
     BackHandler(enabled = uiState.isSyncing) { showCancelSyncDialog = true }
@@ -44,6 +47,7 @@ fun SyncScreen(
         viewModel.events.collectLatest { event ->
             when (event) {
                 is SyncEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
+                is SyncEvent.ShowPullWithChangesWarning -> showPullWarningDialog = true
             }
         }
     }
@@ -96,7 +100,7 @@ fun SyncScreen(
                         Text(stringResource(R.string.actions), style = MaterialTheme.typography.titleMedium)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(
-                                onClick = viewModel::pull,
+                                onClick = viewModel::pullWithSmartCheck,
                                 enabled = !uiState.isSyncing && uiState.isRepoSetup,
                                 modifier = Modifier.weight(1f),
                             ) {
@@ -138,9 +142,75 @@ fun SyncScreen(
                 }
             }
 
+            // Conflict Banner — shown when the last pull produced merge conflicts
+            if (uiState.conflictFiles != null) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    ) {
+                        Column(
+                            Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Outlined.Error, null,
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    stringResource(R.string.conflict_detected),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                )
+                            }
+                            uiState.conflictFiles!!.take(5).forEach { file ->
+                                Text(
+                                    "!! $file",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            if (uiState.conflictFiles!!.size > 5) {
+                                Text(
+                                    stringResource(R.string.and_more, uiState.conflictFiles!!.size - 5),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                )
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(
+                                    onClick = viewModel::dismissConflict,
+                                    enabled = !uiState.isSyncing,
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                    ),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp, MaterialTheme.colorScheme.onErrorContainer,
+                                    ),
+                                ) { Text(stringResource(R.string.keep_mine)) }
+                                Button(
+                                    onClick = { showForceResetDialog = true },
+                                    enabled = !uiState.isSyncing,
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.error,
+                                    ),
+                                ) { Text(stringResource(R.string.accept_remote)) }
+                            }
+                        }
+                    }
+                }
+            }
+
             // "No local changes" — only shown once status check is done and list is empty
             if (!uiState.isLoadingStatus && !uiState.isSyncing &&
-                uiState.pendingChanges.isEmpty() && uiState.isRepoSetup
+                uiState.pendingChanges.isEmpty() && uiState.isRepoSetup &&
+                uiState.conflictFiles == null
             ) {
                 item {
                     Row(
@@ -189,6 +259,25 @@ fun SyncScreen(
                                 Text(stringResource(R.string.and_more, uiState.pendingChanges.size - 10),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            }
+                            HorizontalDivider(
+                                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f),
+                            )
+                            TextButton(
+                                onClick = { showDiscardDialog = true },
+                                enabled = !uiState.isSyncing,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error,
+                                ),
+                            ) {
+                                Icon(
+                                    Icons.Outlined.DeleteForever, null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(stringResource(R.string.discard_local_changes))
                             }
                         }
                     }
@@ -261,6 +350,90 @@ fun SyncScreen(
                     Text(stringResource(R.string.keep_waiting))
                 }
             },
+        )
+    }
+
+    // ── Discard local changes confirmation dialog ─────────────────────────────
+    if (showDiscardDialog) {
+        AlertDialog(
+            onDismissRequest = { showDiscardDialog = false },
+            title = { Text(stringResource(R.string.confirm_discard_title)) },
+            text = { Text(stringResource(R.string.confirm_discard_body)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDiscardDialog = false
+                        viewModel.discardLocalChanges()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                ) { Text(stringResource(R.string.discard_local_changes)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+
+    // ── Force-reset to remote confirmation dialog ─────────────────────────────
+    if (showForceResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showForceResetDialog = false },
+            title = { Text(stringResource(R.string.confirm_force_reset_title)) },
+            text = { Text(stringResource(R.string.confirm_force_reset_body)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showForceResetDialog = false
+                        viewModel.forceResetToRemote()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                ) { Text(stringResource(R.string.accept_remote)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showForceResetDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+
+    // ── Pull-with-local-changes warning dialog (choose resolution strategy) ───
+    if (showPullWarningDialog) {
+        AlertDialog(
+            onDismissRequest = { showPullWarningDialog = false },
+            title = { Text(stringResource(R.string.pull_with_local_changes_title)) },
+            text = { Text(stringResource(R.string.pull_with_local_changes_body)) },
+            confirmButton = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    // Recommended: discard local changes then pull (no conflict possible)
+                    Button(
+                        onClick = {
+                            showPullWarningDialog = false
+                            viewModel.discardThenPull()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    ) { Text(stringResource(R.string.discard_then_pull)) }
+                    // Advanced: just pull and let JGit attempt a merge (may produce conflicts)
+                    OutlinedButton(
+                        onClick = {
+                            showPullWarningDialog = false
+                            viewModel.pull()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.just_pull)) }
+                    TextButton(
+                        onClick = { showPullWarningDialog = false },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.cancel)) }
+                }
+            },
+            dismissButton = null,
         )
     }
 }

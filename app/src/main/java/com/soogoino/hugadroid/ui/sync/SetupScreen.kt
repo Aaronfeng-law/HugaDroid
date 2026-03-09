@@ -210,6 +210,10 @@ class SetupViewModel @Inject constructor(
                     }
                     _uiState.update { it.copy(isCloning = false, error = msg) }
                 }
+                // GitResult.Conflict is not possible for clone, but required for exhaustive when
+                is GitResult.Conflict -> {
+                    _uiState.update { it.copy(isCloning = false, error = context.getString(R.string.error_clone_failed)) }
+                }
             }
         }
     }

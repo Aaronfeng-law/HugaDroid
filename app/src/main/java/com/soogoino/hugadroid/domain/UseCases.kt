@@ -5,6 +5,7 @@ import com.soogoino.hugadroid.data.model.HugoPost
 import com.soogoino.hugadroid.data.prefs.AppPreferences
 import com.soogoino.hugadroid.data.prefs.AppSettings
 import com.soogoino.hugadroid.data.repository.PostRepository
+import com.soogoino.hugadroid.git.GitAuth
 import com.soogoino.hugadroid.git.GitRepository
 import com.soogoino.hugadroid.git.GitResult
 import kotlinx.coroutines.flow.Flow
@@ -90,29 +91,64 @@ class SyncRepoUseCase @Inject constructor(
 
         // Pull
         val pullResult = gitRepository.pull(repoPath, auth, onProgress)
-        if (pullResult is GitResult.Failure) {
-            return SyncResult(false, false, pullResult.error)
+        when (pullResult) {
+            is GitResult.Failure -> return SyncResult(false, false, pullResult.error)
+            is GitResult.Conflict -> return SyncResult(
+                false, false,
+                Exception("merge_conflict:${pullResult.files.joinToString(",")}"),
+            )
+            is GitResult.Success -> { /* continue to commit+push */ }
         }
 
-        // Commit + push if there are local changes
-        var pushed = false
-        if (gitRepository.hasLocalChanges(repoPath)) {
-            val msg = commitMessage ?: "Auto-sync: ${java.time.Instant.now()}"
-            // Author info is required — caller must ensure it is configured before syncing
-            val authorName = settings.authorName.ifBlank { return SyncResult(false, false, IllegalStateException("author_name_missing")) }
-            val authorEmail = settings.authorEmail.ifBlank { return SyncResult(false, false, IllegalStateException("author_email_missing")) }
-            val pushResult = gitRepository.commitAndPush(
-                repoPath, msg,
-                authorName,
-                authorEmail,
-                auth, onProgress,
-            )
-            pushed = pushResult is GitResult.Success
-        }
+        // Commit + push (commitAndPush handles the "nothing to commit" case internally,
+        // returning Success(false) when the working tree is already clean after staging).
+        val msg = commitMessage ?: "Auto-sync: ${java.time.Instant.now()}"
+        // Author info is required — caller must ensure it is configured before syncing
+        val authorName = settings.authorName.ifBlank { return SyncResult(false, false, IllegalStateException("author_name_missing")) }
+        val authorEmail = settings.authorEmail.ifBlank { return SyncResult(false, false, IllegalStateException("author_email_missing")) }
+        val pushResult = gitRepository.commitAndPush(
+            repoPath, msg,
+            authorName,
+            authorEmail,
+            auth, onProgress,
+        )
+        val pushed = pushResult is GitResult.Success && (pushResult as GitResult.Success).data
 
         // Refresh post list
         postRepository.scanAndRefresh(repoPath)
 
         return SyncResult(pulled = true, pushed = pushed)
+    }
+}
+
+/** Hard-reset working tree to HEAD — discards all local uncommitted changes. */
+class DiscardLocalChangesUseCase @Inject constructor(
+    private val gitRepository: GitRepository,
+    private val prefs: AppPreferences,
+) {
+    suspend operator fun invoke(): GitResult<Unit> {
+        val settings = prefs.settings.first()
+        if (settings.localRepoPath.isBlank()) {
+            return GitResult.Failure(IllegalStateException("No repo path configured"))
+        }
+        return gitRepository.discardLocalChanges(settings.localRepoPath)
+    }
+}
+
+/** Fetch remote and hard-reset to `origin/<branch>` — accepts remote as source of truth. */
+class ForceResetToRemoteUseCase @Inject constructor(
+    private val gitRepository: GitRepository,
+    private val prefs: AppPreferences,
+) {
+    suspend operator fun invoke(
+        onProgress: (percent: Int, task: String) -> Unit = { _, _ -> },
+    ): GitResult<Unit> {
+        val settings = prefs.settings.first()
+        val auth = settings.toGitAuth()
+            ?: return GitResult.Failure(IllegalStateException("No auth configured"))
+        if (settings.localRepoPath.isBlank()) {
+            return GitResult.Failure(IllegalStateException("No repo path configured"))
+        }
+        return gitRepository.forceResetToRemote(settings.localRepoPath, auth, onProgress)
     }
 }

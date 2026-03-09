@@ -199,6 +199,22 @@
     <string name="error_auth_ssh">SSH 驗證失敗——請確認 Deploy Key 已新增至儲存庫</string>
     <string name="error_push_rejected">Push 被遠端拒絕 — 請先 Pull 以解決衝突</string>
     <string name="error_clone_failed">Clone 失敗</string>
+
+    <!-- Git 衝突解決 -->
+    <string name="conflict_detected">偵測到 Git 衝突</string>
+    <string name="keep_mine">保留本機版本</string>
+    <string name="accept_remote">接受遠端版本</string>
+    <string name="discard_local_changes">捨棄本機變更</string>
+    <string name="confirm_discard_title">確認捨棄所有變更？</string>
+    <string name="confirm_discard_body">所有未提交的變更將永久刪除，此操作無法復原。</string>
+    <string name="confirm_force_reset_title">接受遠端版本？</string>
+    <string name="confirm_force_reset_body">本機所有變更將被捨棄，並更新至最新遠端狀態，此操作無法復原。</string>
+    <string name="pull_with_local_changes_title">本機有未提交的變更</string>
+    <string name="pull_with_local_changes_body">直接 Pull 可能產生衝突，請選擇處理方式：</string>
+    <string name="discard_then_pull">捨棄變更後 Pull</string>
+    <string name="just_pull">直接 Pull（可能衝突）</string>
+    <string name="discard_success">本機變更已捨棄</string>
+    <string name="force_reset_success">已同步至最新遠端狀態 ✓</string>
     <string name="error_author_name_missing">尚未設定作者名稱 — 請先至設定頁填寫後再同步</string>
     <string name="error_author_email_missing">尚未設定作者 Email — 請先至設定頁填寫後再同步</string>
     <!-- 網路作業防護字串 -->

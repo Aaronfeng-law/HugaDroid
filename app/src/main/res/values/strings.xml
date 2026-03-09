@@ -198,6 +198,22 @@
     <string name="error_auth_ssh">SSH auth failed — verify your deploy key is added to the repository</string>
     <string name="error_push_rejected">Push rejected — pull first to resolve conflicts</string>
     <string name="error_clone_failed">Clone failed</string>
+
+    <!-- Git conflict resolution -->
+    <string name="conflict_detected">Git Conflict Detected</string>
+    <string name="keep_mine">Keep Mine</string>
+    <string name="accept_remote">Accept Remote</string>
+    <string name="discard_local_changes">Discard Local Changes</string>
+    <string name="confirm_discard_title">Discard all changes?</string>
+    <string name="confirm_discard_body">All uncommitted changes will be permanently deleted. This cannot be undone.</string>
+    <string name="confirm_force_reset_title">Accept remote version?</string>
+    <string name="confirm_force_reset_body">All local changes will be discarded and your repo will be updated to the latest remote state. This cannot be undone.</string>
+    <string name="pull_with_local_changes_title">You have local changes</string>
+    <string name="pull_with_local_changes_body">Pulling now may cause conflicts. Choose how to proceed:</string>
+    <string name="discard_then_pull">Discard changes then Pull</string>
+    <string name="just_pull">Pull anyway (may conflict)</string>
+    <string name="discard_success">Local changes discarded</string>
+    <string name="force_reset_success">Synced to latest remote ✓</string>
     <string name="error_author_name_missing">Author name is required — fill it in Settings before syncing</string>
     <string name="error_author_email_missing">Author email is required — fill it in Settings before syncing</string>
     <!-- Network-op guard strings -->

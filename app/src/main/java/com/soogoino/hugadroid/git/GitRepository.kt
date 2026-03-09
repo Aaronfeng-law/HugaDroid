@@ -24,6 +24,8 @@ data class CommitEntry(
 sealed class GitResult<out T> {
     data class Success<T>(val data: T) : GitResult<T>()
     data class Failure(val error: Throwable) : GitResult<Nothing>()
+    /** Pull completed but there are merge conflicts that need resolution. */
+    data class Conflict(val files: List<String>) : GitResult<Nothing>()
 }
 
 /** High-level Git operations needed by the app. */
@@ -44,7 +46,12 @@ interface GitRepository {
         onProgress: (percent: Int, task: String) -> Unit = { _, _ -> },
     ): GitResult<Unit>
 
-    /** Stage all changes, commit, and push to origin. */
+    /**
+     * Stage all changes, commit, and push to origin.
+     * Returns [GitResult.Success] with:
+     *  - `true`  — changes were committed and pushed
+     *  - `false` — nothing to commit (working tree clean after staging)
+     */
     suspend fun commitAndPush(
         localPath: String,
         message: String,
@@ -52,7 +59,7 @@ interface GitRepository {
         authorEmail: String,
         auth: GitAuth,
         onProgress: (percent: Int, task: String) -> Unit = { _, _ -> },
-    ): GitResult<Unit>
+    ): GitResult<Boolean>
 
     /** Stage all modified/new/deleted files. */
     suspend fun stageAll(localPath: String): GitResult<Unit>
@@ -71,4 +78,20 @@ interface GitRepository {
 
     /** Check whether [localPath] is an initialised Git repository. */
     fun isRepository(localPath: String): Boolean
+
+    /**
+     * Discard all local changes: hard-reset to HEAD and remove untracked files.
+     * Equivalent to `git reset --hard HEAD && git clean -fd`.
+     */
+    suspend fun discardLocalChanges(localPath: String): GitResult<Unit>
+
+    /**
+     * Fetch from remote, then hard-reset the working tree to `origin/<branch>`.
+     * Equivalent to `git fetch && git reset --hard origin/<branch> && git clean -fd`.
+     */
+    suspend fun forceResetToRemote(
+        localPath: String,
+        auth: GitAuth,
+        onProgress: (percent: Int, task: String) -> Unit = { _, _ -> },
+    ): GitResult<Unit>
 }

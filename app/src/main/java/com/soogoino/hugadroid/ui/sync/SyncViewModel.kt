@@ -7,6 +7,8 @@ import com.soogoino.hugadroid.R
 import com.soogoino.hugadroid.data.local.CommitDao
 import com.soogoino.hugadroid.data.local.CommitEntity
 import com.soogoino.hugadroid.data.prefs.AppPreferences
+import com.soogoino.hugadroid.domain.DiscardLocalChangesUseCase
+import com.soogoino.hugadroid.domain.ForceResetToRemoteUseCase
 import com.soogoino.hugadroid.domain.ScanPostsUseCase
 import com.soogoino.hugadroid.domain.SyncRepoUseCase
 import com.soogoino.hugadroid.git.CommitEntry
@@ -34,10 +36,18 @@ data class SyncUiState(
     val aheadCount: Int = 0,
     val error: String? = null,
     val isRepoSetup: Boolean = false,
+    /**
+     * Non-null when the last pull produced merge conflicts.
+     * Each element is a file path that is currently conflicting.
+     * Set back to null once the user resolves or dismisses the conflict.
+     */
+    val conflictFiles: List<String>? = null,
 )
 
 sealed class SyncEvent {
     data class ShowSnackbar(val message: String) : SyncEvent()
+    /** Emitted when the user taps Pull while there are uncommitted local changes. */
+    data object ShowPullWithChangesWarning : SyncEvent()
 }
 
 @HiltViewModel
@@ -45,6 +55,8 @@ class SyncViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val syncRepoUseCase: SyncRepoUseCase,
     private val scanPostsUseCase: ScanPostsUseCase,
+    private val discardLocalChangesUseCase: DiscardLocalChangesUseCase,
+    private val forceResetToRemoteUseCase: ForceResetToRemoteUseCase,
     private val gitRepository: GitRepository,
     private val commitDao: CommitDao,
     private val prefs: AppPreferences,
@@ -110,18 +122,113 @@ class SyncViewModel @Inject constructor(
             val result = gitRepository.pull(settings.localRepoPath, auth) { pct, task ->
                 _uiState.update { it.copy(syncProgress = pct, syncTask = task) }
             }
+            when (result) {
+                is GitResult.Success -> {
+                    _events.emit(SyncEvent.ShowSnackbar(context.getString(R.string.pull_success)))
+                    runCatching { scanPostsUseCase() }
+                }
+                is GitResult.Conflict -> {
+                    _uiState.update { it.copy(conflictFiles = result.files) }
+                    _events.emit(SyncEvent.ShowSnackbar(context.getString(R.string.conflict_detected)))
+                }
+                is GitResult.Failure -> {
+                    _events.emit(SyncEvent.ShowSnackbar(gitErrorMessage(result.error)))
+                }
+            }
+            _uiState.update { it.copy(isSyncing = false, syncProgress = 0) }
+            refreshStatus()
+        }
+    }
+
+    /**
+     * Smart pull: if there are uncommitted local changes, emits [SyncEvent.ShowPullWithChangesWarning]
+     * so the UI can show a resolution dialog. If the working tree is clean, pulls immediately.
+     */
+    fun pullWithSmartCheck() {
+        if (_uiState.value.pendingChanges.isNotEmpty()) {
+            viewModelScope.launch { _events.emit(SyncEvent.ShowPullWithChangesWarning) }
+        } else {
+            pull()
+        }
+    }
+
+    /** Discard all local changes (git reset --hard HEAD + git clean -fd). */
+    fun discardLocalChanges() {
+        syncJob = viewModelScope.launch {
+            _uiState.update { it.copy(isSyncing = true) }
+            val result = discardLocalChangesUseCase()
             val msg = if (result is GitResult.Success)
-                context.getString(R.string.pull_success)
+                context.getString(R.string.discard_success)
+            else
+                (result as GitResult.Failure).error.message ?: context.getString(R.string.sync_failed)
+            _events.emit(SyncEvent.ShowSnackbar(msg))
+            _uiState.update { it.copy(isSyncing = false, syncProgress = 0, conflictFiles = null) }
+            runCatching { scanPostsUseCase() }
+            refreshStatus()
+        }
+    }
+
+    /** Discard local changes then pull (conflict-free workflow). */
+    fun discardThenPull() {
+        syncJob = viewModelScope.launch {
+            _uiState.update { it.copy(isSyncing = true) }
+            val discardResult = discardLocalChangesUseCase()
+            if (discardResult is GitResult.Failure) {
+                _events.emit(SyncEvent.ShowSnackbar(
+                    discardResult.error.message ?: context.getString(R.string.sync_failed)
+                ))
+                _uiState.update { it.copy(isSyncing = false, syncProgress = 0) }
+                return@launch
+            }
+            // Now pull
+            val settings = prefs.settings.first()
+            val auth = settings.toGitAuth() ?: run {
+                _events.emit(SyncEvent.ShowSnackbar(context.getString(R.string.error_auth_not_configured)))
+                _uiState.update { it.copy(isSyncing = false) }
+                return@launch
+            }
+            val pullResult = gitRepository.pull(settings.localRepoPath, auth) { pct, task ->
+                _uiState.update { it.copy(syncProgress = pct, syncTask = task) }
+            }
+            val msg = when (pullResult) {
+                is GitResult.Success -> context.getString(R.string.pull_success)
+                is GitResult.Conflict -> {
+                    _uiState.update { it.copy(conflictFiles = pullResult.files) }
+                    context.getString(R.string.conflict_detected)
+                }
+                is GitResult.Failure -> gitErrorMessage(pullResult.error)
+            }
+            _events.emit(SyncEvent.ShowSnackbar(msg))
+            _uiState.update { it.copy(isSyncing = false, syncProgress = 0) }
+            runCatching { scanPostsUseCase() }
+            refreshStatus()
+        }
+    }
+
+    /**
+     * Fetch remote and hard-reset to origin/<branch>.
+     * Accepts remote as the ultimate source of truth — all local changes are lost.
+     */
+    fun forceResetToRemote() {
+        syncJob = viewModelScope.launch {
+            _uiState.update { it.copy(isSyncing = true) }
+            val result = forceResetToRemoteUseCase { pct, task ->
+                _uiState.update { it.copy(syncProgress = pct, syncTask = task) }
+            }
+            val msg = if (result is GitResult.Success)
+                context.getString(R.string.force_reset_success)
             else
                 gitErrorMessage((result as GitResult.Failure).error)
             _events.emit(SyncEvent.ShowSnackbar(msg))
-            _uiState.update { it.copy(isSyncing = false, syncProgress = 0) }
-            // Rescan posts so PostsScreen reflects files added/removed by pull
-            if (result is GitResult.Success) {
-                runCatching { scanPostsUseCase() }
-            }
+            _uiState.update { it.copy(isSyncing = false, syncProgress = 0, conflictFiles = null) }
+            runCatching { scanPostsUseCase() }
             refreshStatus()
         }
+    }
+
+    /** Clear conflict state without taking any git action (user chose to handle it manually). */
+    fun dismissConflict() {
+        _uiState.update { it.copy(conflictFiles = null) }
     }
 
     fun commitAndPush(message: String) {

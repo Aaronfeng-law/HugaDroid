@@ -73,12 +73,12 @@ fun isAuthError(e: Throwable): Boolean {
  * Executes [block] up to [maxAttempts] times, retrying only when the result
  * is a [GitResult.Failure] caused by a transient network error.
  *
- * Delay between attempts uses linear backoff: attempt N waits [baseDelayMs] × N ms.
+ * Delay between attempts uses exponential backoff: attempt N waits [baseDelayMs] × 2^(N-1) ms.
  * Non-network failures (auth errors, push rejections, etc.) are returned immediately.
  */
 suspend fun <T> retryOnNetworkError(
     maxAttempts: Int = 3,
-    baseDelayMs: Long = 2_000,
+    baseDelayMs: Long = 1_000,
     tag: String = TAG_RETRY,
     block: suspend () -> GitResult<T>,
 ): GitResult<T> {
@@ -86,6 +86,8 @@ suspend fun <T> retryOnNetworkError(
     for (attempt in 1..maxAttempts) {
         lastResult = block()
         if (lastResult is GitResult.Success) return lastResult
+        // Merge conflicts are not a network issue — return immediately without retry
+        if (lastResult is GitResult.Conflict) return lastResult
 
         val error = (lastResult as GitResult.Failure).error
         if (!isNetworkError(error)) {
@@ -93,7 +95,7 @@ suspend fun <T> retryOnNetworkError(
             return lastResult
         }
         if (attempt < maxAttempts) {
-            val waitMs = baseDelayMs * attempt
+            val waitMs = baseDelayMs shl (attempt - 1) // exponential: 1 s, 2 s, 4 s …
             Log.w(tag, "Network error on attempt $attempt/$maxAttempts — retrying in ${waitMs}ms: ${error.message}")
             delay(waitMs)
         } else {

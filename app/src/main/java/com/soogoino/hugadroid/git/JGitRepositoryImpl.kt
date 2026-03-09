@@ -5,6 +5,7 @@ import com.soogoino.hugadroid.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.ResetCommand
 import org.eclipse.jgit.dircache.DirCacheEditor
 import org.eclipse.jgit.dircache.DirCacheEntry
 import org.eclipse.jgit.lib.Config
@@ -173,21 +174,27 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
         onProgress: (Int, String) -> Unit,
     ): GitResult<Unit> = withContext(Dispatchers.IO) {
         retryOnNetworkError(tag = TAG) {
-            runCatching {
+            try {
                 Git.open(File(localPath)).use { git ->
                     val cmd = git.pull()
                         .setProgressMonitor(progressMonitor(onProgress))
                         .setTransportConfigCallback(transportConfigCallback(auth))
                     credentialsProvider(auth)?.let { cmd.setCredentialsProvider(it) }
-                    cmd.call()
+                    val pullResult = cmd.call()
+                    // Detect merge conflicts (JGit encodes them in MergeResult, not as exceptions)
+                    val mergeStatus = pullResult.mergeResult?.mergeStatus
+                    if (mergeStatus == org.eclipse.jgit.api.MergeResult.MergeStatus.CONFLICTING) {
+                        val conflictFiles = pullResult.mergeResult?.conflicts?.keys?.toList() ?: emptyList()
+                        Log.w(TAG, "pull: merge conflict in ${conflictFiles.size} file(s)")
+                        GitResult.Conflict(conflictFiles)
+                    } else {
+                        GitResult.Success(Unit)
+                    }
                 }
-            }.fold(
-                onSuccess = { GitResult.Success(Unit) },
-                onFailure = { e ->
-                    Log.e(TAG, "pull failed", e)
-                    GitResult.Failure(e)
-                }
-            )
+            } catch (e: Exception) {
+                Log.e(TAG, "pull failed", e)
+                GitResult.Failure(e)
+            }
         }
     }
 
@@ -198,16 +205,43 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
         authorEmail: String,
         auth: GitAuth,
         onProgress: (Int, String) -> Unit,
-    ): GitResult<Unit> = withContext(Dispatchers.IO) {
-        // ── Stage + Commit (local ops, not retried) ───────────────────────────────
-        val commitResult = runCatching {
-            Git.open(File(localPath)).use { git ->
+    ): GitResult<Boolean> = withContext(Dispatchers.IO) {
+        // Open Git once and keep it alive for both the commit and the push phases.
+        // This avoids a second Git.open() call (which re-reads .git/config + reinitialises the
+        // object store from Android flash storage) and lets the SSH session be reused across both
+        // operations thanks to JschSshSessionFactory's session cache.
+        val git = runCatching { Git.open(File(localPath)) }.getOrElse { e ->
+            Log.e(TAG, "commitAndPush: failed to open git repo", e)
+            return@withContext GitResult.Failure(e)
+        }
+        try {
+            // ── Stage ──────────────────────────────────────────────────────────────
+            val stageResult = runCatching {
                 git.add().addFilepattern(".").call()
                 git.add().setUpdate(true).addFilepattern(".").call()
                 // Restore submodule gitlinks that JGit's AddCommand may have removed
                 // (JGit does not initialise submodules, so their directories are absent and
                 //  setUpdate(true) treats them as deleted entries).
                 preserveSubmoduleGitlinks(git)
+            }
+            if (stageResult.isFailure) {
+                val e = stageResult.exceptionOrNull()!!
+                Log.e(TAG, "commitAndPush: stage phase failed", e)
+                return@withContext GitResult.Failure(e)
+            }
+
+            // ── Check for actual changes (skip commit+push if working tree is clean) ──
+            val hasChanges = runCatching {
+                val status = git.status().call()
+                status.hasUncommittedChanges() || status.untracked.isNotEmpty()
+            }.getOrDefault(true) // default to true to not silently skip on status failure
+            if (!hasChanges) {
+                Log.d(TAG, "commitAndPush: nothing to commit, skipping push")
+                return@withContext GitResult.Success(false)
+            }
+
+            // ── Commit ─────────────────────────────────────────────────────────────
+            val commitResult = runCatching {
                 val personIdent = org.eclipse.jgit.lib.PersonIdent(authorName, authorEmail)
                 git.commit()
                     .setMessage(message)
@@ -215,17 +249,15 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
                     .setCommitter(personIdent)
                     .call()
             }
-        }
-        if (commitResult.isFailure) {
-            val e = commitResult.exceptionOrNull()!!
-            Log.e(TAG, "commitAndPush: commit phase failed", e)
-            return@withContext GitResult.Failure(e)
-        }
+            if (commitResult.isFailure) {
+                val e = commitResult.exceptionOrNull()!!
+                Log.e(TAG, "commitAndPush: commit phase failed", e)
+                return@withContext GitResult.Failure(e)
+            }
 
-        // ── Push (network op, retried up to 3×) ─────────────────────────────────
-        retryOnNetworkError(tag = TAG) {
-            runCatching {
-                Git.open(File(localPath)).use { git ->
+            // ── Push (network op, retried up to 3×, same git instance) ─────────────
+            retryOnNetworkError(tag = TAG) {
+                runCatching {
                     val pushCmd = git.push()
                         .setProgressMonitor(progressMonitor(onProgress))
                         .setTransportConfigCallback(transportConfigCallback(auth))
@@ -243,14 +275,18 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
                             }
                         }
                     }
-                }
-            }.fold(
-                onSuccess = { GitResult.Success(Unit) },
-                onFailure = { e ->
-                    Log.e(TAG, "commitAndPush: push phase failed", e)
-                    GitResult.Failure(e)
-                }
-            )
+                }.fold(
+                    onSuccess = { GitResult.Success(true) },
+                    onFailure = { e ->
+                        Log.e(TAG, "commitAndPush: push phase failed", e)
+                        GitResult.Failure(e)
+                    }
+                )
+            }
+        } finally {
+            git.close()
+            // Release the cached SSH session so the connection does not linger past this sync.
+            JschSshSessionFactory.evictAll()
         }
     }
 
@@ -341,4 +377,54 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
             Git.open(File(localPath)).close()
             true
         }.getOrDefault(false)
+
+    override suspend fun discardLocalChanges(localPath: String): GitResult<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                Git.open(File(localPath)).use { git ->
+                    git.reset().setMode(ResetCommand.ResetType.HARD).call()
+                    git.clean().setCleanDirectories(true).setForce(true).call()
+                }
+            }.fold(
+                onSuccess = { GitResult.Success(Unit) },
+                onFailure = { e ->
+                    Log.e(TAG, "discardLocalChanges failed", e)
+                    GitResult.Failure(e)
+                }
+            )
+        }
+
+    override suspend fun forceResetToRemote(
+        localPath: String,
+        auth: GitAuth,
+        onProgress: (Int, String) -> Unit,
+    ): GitResult<Unit> = withContext(Dispatchers.IO) {
+        retryOnNetworkError(tag = TAG) {
+            runCatching {
+                Git.open(File(localPath)).use { git ->
+                    // Fetch latest from remote
+                    val fetchCmd = git.fetch()
+                        .setProgressMonitor(progressMonitor(onProgress))
+                        .setTransportConfigCallback(transportConfigCallback(auth))
+                    credentialsProvider(auth)?.let { fetchCmd.setCredentialsProvider(it) }
+                    fetchCmd.call()
+                    // Hard-reset to origin/<current-branch>
+                    val branch = git.repository.branch
+                    git.reset()
+                        .setMode(ResetCommand.ResetType.HARD)
+                        .setRef("origin/$branch")
+                        .call()
+                    // Remove any remaining untracked files
+                    git.clean().setCleanDirectories(true).setForce(true).call()
+                    Log.i(TAG, "forceResetToRemote: reset to origin/$branch")
+                }
+            }.fold(
+                onSuccess = { GitResult.Success(Unit) },
+                onFailure = { e ->
+                    Log.e(TAG, "forceResetToRemote failed", e)
+                    GitResult.Failure(e)
+                }
+            )
+        }
+    }
 }
