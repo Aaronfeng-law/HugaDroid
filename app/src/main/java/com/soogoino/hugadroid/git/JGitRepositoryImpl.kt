@@ -5,9 +5,15 @@ import com.soogoino.hugadroid.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.dircache.DirCacheEditor
+import org.eclipse.jgit.dircache.DirCacheEntry
+import org.eclipse.jgit.lib.Config
+import org.eclipse.jgit.lib.FileMode
 import org.eclipse.jgit.lib.ProgressMonitor
+import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.transport.SshTransport
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
+import org.eclipse.jgit.treewalk.TreeWalk
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -63,6 +69,60 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
         override fun endTask() { onProgress(100, taskTitle) }
         override fun isCancelled() = false
         override fun showDuration(enabled: Boolean) {}
+    }
+
+    /**
+     * JGit's AddCommand does not understand submodules: when the submodule directory is absent
+     * (because JGit never initialises submodules during clone), `git.add().setUpdate(true)` treats
+     * the path as deleted and removes the 160000-mode gitlink from the index.  This helper reads
+     * .gitmodules, finds every declared submodule path, and re-inserts its gitlink (type commit,
+     * mode 160000) into the DirCache from the current HEAD tree so the next commit preserves it.
+     */
+    private fun preserveSubmoduleGitlinks(git: Git) {
+        val repo = git.repository
+        val gitmodulesFile = File(repo.workTree, ".gitmodules")
+        if (!gitmodulesFile.exists()) return
+
+        val modulesConfig = Config()
+        try {
+            modulesConfig.fromText(gitmodulesFile.readText())
+        } catch (e: Exception) {
+            Log.w(TAG, "preserveSubmoduleGitlinks: failed to parse .gitmodules", e)
+            return
+        }
+        val subPaths = modulesConfig.getSubsections("submodule")
+            .mapNotNull { modulesConfig.getString("submodule", it, "path") }
+        if (subPaths.isEmpty()) return
+
+        val headId = repo.resolve(org.eclipse.jgit.lib.Constants.HEAD) ?: run {
+            Log.w(TAG, "preserveSubmoduleGitlinks: HEAD is null, skipping")
+            return
+        }
+        val headTree = RevWalk(repo).use { rw -> rw.parseCommit(headId).tree }
+
+        val dirCache = repo.lockDirCache()
+        try {
+            val editor = dirCache.editor()
+            for (path in subPaths) {
+                val tw = TreeWalk.forPath(repo, path, headTree)
+                if (tw != null && tw.getFileMode(0) == FileMode.GITLINK) {
+                    val oid = org.eclipse.jgit.lib.ObjectId.fromString(tw.getObjectId(0).name)
+                    editor.add(object : DirCacheEditor.PathEdit(path) {
+                        override fun apply(ent: DirCacheEntry) {
+                            ent.fileMode = FileMode.GITLINK
+                            ent.setObjectId(oid)
+                        }
+                    })
+                    Log.d(TAG, "preserveSubmoduleGitlinks: restored gitlink $path -> ${oid.name}")
+                } else {
+                    Log.w(TAG, "preserveSubmoduleGitlinks: gitlink not found in HEAD tree for path=$path")
+                }
+                tw?.close()
+            }
+            editor.commit()
+        } finally {
+            dirCache.unlock()
+        }
     }
 
     // ─── GitRepository implementation ────────────────────────────────────────
@@ -144,6 +204,10 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
             Git.open(File(localPath)).use { git ->
                 git.add().addFilepattern(".").call()
                 git.add().setUpdate(true).addFilepattern(".").call()
+                // Restore submodule gitlinks that JGit's AddCommand may have removed
+                // (JGit does not initialise submodules, so their directories are absent and
+                //  setUpdate(true) treats them as deleted entries).
+                preserveSubmoduleGitlinks(git)
                 val personIdent = org.eclipse.jgit.lib.PersonIdent(authorName, authorEmail)
                 git.commit()
                     .setMessage(message)
@@ -194,6 +258,7 @@ class JGitRepositoryImpl @Inject constructor() : GitRepository {
         runCatching {
             Git.open(File(localPath)).use { git ->
                 git.add().addFilepattern(".").call()
+                preserveSubmoduleGitlinks(git)
             }
         }.fold(
             onSuccess = { GitResult.Success(Unit) },
